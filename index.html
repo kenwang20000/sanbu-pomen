@@ -142,7 +142,7 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 @keyframes pulse{0%,100%{transform:scale(.92);opacity:1}50%{transform:scale(1.12);opacity:.35}}
 .cell.mate{box-shadow:inset 0 0 0 3px #ffd34d;animation:blink 1s ease-in-out infinite}
 @keyframes blink{50%{box-shadow:inset 0 0 0 3px rgba(255,211,77,.25)}}
-.menu{position:absolute;z-index:8;display:flex;gap:4px;padding:4px;border-radius:10px;background:rgba(20,28,24,.92);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.menu{position:absolute;z-index:10;display:flex;gap:4px;padding:4px;border-radius:10px;background:rgba(20,28,24,.92);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .menu button{font-family:var(--f-body);font-size:14px;padding:7px 9px;border-radius:7px;border:0;background:#f0f3ee;color:#1d2420;cursor:pointer;white-space:nowrap}
 .menu button:disabled{opacity:.35;cursor:default}
 .menu button.go2{background:var(--accent);color:var(--accent-ink);font-weight:500}
@@ -738,6 +738,7 @@ function render(){
   else if(last&&!S.over){ html='<div class="ct">第 '+last.turn+' 回合 · 解说</div><div class="cs">'+last.sum+'</div>'+(S.more?'<ul>'+last.steps.map(x=>'<li class="'+x.c+'">'+x.t+'</li>').join('')+'</ul>':'')+'<button class="more" data-more="1">'+(S.more?'收起判定 ▴':'看判定细节 ▾')+'</button><div class="cp">'+(S.turn>=MAXT?'最后一回合，只能射门：点闪红圈的 '+name(h)+'。':'轮到你：点闪红圈的 '+name(h)+'。')+'</div>'; }
   else if(last&&S.over) html='';
   else html='<div class="cs">第 1 回合：点闪红圈的 '+name(h)+'，选一个动作。</div>';
+  if(S.menu||S.view) html=''; /* while the menu or a stats card is open, the commentary steps aside */
   cm.innerHTML=html; cm.hidden=!html;
 }
 
