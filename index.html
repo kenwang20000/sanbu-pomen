@@ -159,10 +159,11 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .lensrow{position:absolute;z-index:9;top:calc(100%/13 + 4px);right:3%;left:3%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}
 .lensrow button{font-family:var(--f-body);font-size:12px;padding:4px 9px;border-radius:999px;border:0;background:rgba(20,28,24,.88);color:#f0f4ec;cursor:pointer}
 .lensrow button.on{background:#f0f4ec;color:#1d2420}
-.comment{position:absolute;z-index:8;left:3%;right:3%;bottom:calc(100%/13 + 6px);max-height:44%;overflow:auto;background:rgba(14,22,18,.9);color:#eef2ec;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.comment{position:absolute;z-index:8;left:3%;right:3%;bottom:calc(100%/13 + 6px);max-height:44%;overflow:auto;background:rgba(14,22,18,.9);color:#eef2ec;border-radius:10px;padding:10px 36px 10px 12px;font-size:14px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .comment .ct{font-family:var(--f-display);font-size:13px;letter-spacing:.08em;color:var(--atk);margin-bottom:2px}
 .comment .cs{font-size:15px}
 .comment .cp{margin-top:6px;color:#c9d3cb;font-size:13px}
+.comment .cx{position:absolute;top:2px;right:4px;width:32px;height:32px;border:0;background:none;color:#cfd6cf;font-size:22px;line-height:1;cursor:pointer;padding:0}
 .comment button.more{margin-top:6px;font-family:var(--f-body);font-size:12px;background:none;border:0;color:#9fc1ff;padding:0;cursor:pointer}
 .comment ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;font-size:12px;color:#c9d3cb;font-variant-numeric:tabular-nums}
 .comment li.x{color:#ff8b80}
@@ -242,7 +243,7 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
     <span><svg width="22" height="6" aria-hidden="true"><path d="M0 3H22" stroke="var(--danger)" stroke-width="2" stroke-dasharray="4 3"/></svg>越位线</span>
   </div>
     <ul>
-      <li>点任何球员，旁边弹出他的六项数值；球场右上角"看数值"可以让所有人同时显示同一项数值。持球人菜单里的"建议"会按引擎规则替你选一步，并说明理由。</li>
+      <li>点任何球员，旁边弹出他的六项数值；球场右上角"看数值"可以让所有人同时显示同一项数值。</li>
       <li>你只指挥持球人：不动、带球（每回合最多跑几格看速度）、传球（点目标格；格里有队友就是传脚下，空格就是传空间）、射门。</li>
       <li>其他人由比赛引擎自动跑：蓝队离球最近的人扑向球，门将站在球和球门之间；黄队离落点最近的人去接球，另一人跑向最佳接应点（能安全接到传球、能射门、离球距离合适）（这部分参照足球 AI 教程 Simple Soccer）。其余所有人按阵型随球整体移动——球往前全队压上、球往一侧全队横移，站位取自机器人足球世界赛开源底座 HELIOS 的阵型数据。</li>
       <li>一格最多站一攻一守。同格就要对抗。</li>
@@ -711,7 +712,7 @@ function render(){
   const place=(c)=>{ menuAt=c; };
   if(!S.over&&!S.busy&&S.menu){
     menu.innerHTML=S.turn>=MAXT?'<button disabled>不动</button><button disabled>带球</button><button disabled>传球</button><button data-a="shoot">射门</button>'
-      :'<button data-a="hold">不动</button><button data-a="dribble">带球</button><button data-a="pass">传球</button><button data-a="shoot">射门</button><button class="x" data-a="ai">建议</button>';
+      :'<button data-a="hold">不动</button><button data-a="dribble">带球</button><button data-a="pass">传球</button><button data-a="shoot">射门</button>';
     place(h); menu.hidden=false;
   } else if(!S.over&&!S.busy&&S.action){
     menu.innerHTML='<button class="go2" data-a="go">执行 ▶</button><button class="x" data-a="cancel">取消</button>';
@@ -738,7 +739,8 @@ function render(){
   else if(last&&!S.over){ html='<div class="ct">第 '+last.turn+' 回合 · 解说</div><div class="cs">'+last.sum+'</div>'+(S.more?'<ul>'+last.steps.map(x=>'<li class="'+x.c+'">'+x.t+'</li>').join('')+'</ul>':'')+'<button class="more" data-more="1">'+(S.more?'收起判定 ▴':'看判定细节 ▾')+'</button><div class="cp">'+(S.turn>=MAXT?'最后一回合，只能射门：点闪红圈的 '+name(h)+'。':'轮到你：点闪红圈的 '+name(h)+'。')+'</div>'; }
   else if(last&&S.over) html='';
   else html='<div class="cs">第 1 回合：点闪红圈的 '+name(h)+'，选一个动作。</div>';
-  if(S.menu||S.view) html=''; /* while the menu or a stats card is open, the commentary steps aside */
+  if(S.menu||S.view||S.cmClosed===S.log.length) html='';
+  else if(html) html='<button class="cx" data-close="1" aria-label="关闭解说">×</button>'+html; /* while the menu or a stats card is open, the commentary steps aside */
   cm.innerHTML=html; cm.hidden=!html;
 }
 
@@ -746,7 +748,7 @@ $('startBtn').addEventListener('click',()=>{ S.phase='play'; $('startScreen').hi
 $('again').addEventListener('click',()=>init(false));
 $('replay').addEventListener('click',replay);
 $('lensbtn').addEventListener('click',()=>{ const l=$('lens'); l.hidden=!l.hidden; $('lensbtn').setAttribute('aria-expanded',String(!l.hidden)); render(); });
-$('comment').addEventListener('click',e=>{ if(e.target.closest('[data-more]')){ S.more=!S.more; render(); } });
+$('comment').addEventListener('click',e=>{ if(e.target.closest('[data-close]')){ e.stopPropagation(); S.cmClosed=S.log.length; render(); return; } if(e.target.closest('[data-more]')){ S.more=!S.more; render(); } });
 $('menu').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); const a=b.dataset.a;
   if(a==='go') return execute();
   if(a==='cancel'){ S.action=null; S.ai=null; S.mode='idle'; S.pending=null; return render(); }
