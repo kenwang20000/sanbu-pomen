@@ -300,7 +300,52 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const inPitch=(x,y)=>x>=1&&x<=W&&y>=1&&y<=11;
 const key=c=>c.x+','+c.y;
 const name=p=>(p.team==='A'?'黄':'蓝')+p.num;
-const cxy=c=>'('+c.x+','+c.y+')';
+/* football names for cells: columns left→right, rows from our goal (1) to theirs (11) */
+const SIDE={1:'左路',2:'左肋',3:'中路偏左',4:'中路',5:'中路偏右',6:'右肋',7:'右路'};
+function zone(c){ const x=c.x,y=c.y, lr=x<4?'左':'右';
+  if(y>=12) return '球门';
+  if(y>=10&&x>=2&&x<=6){ if(y===11&&x>=3&&x<=5) return '小禁区'; return x===4?'禁区中路':'禁区'+lr+'侧'; }
+  if(y>=10) return lr+'侧底线附近';
+  if(y===9) return x>=3&&x<=5?'禁区弧顶':(x===2||x===6)?'禁区'+lr+'前沿':lr+'路前场';
+  if(y>=7) return '前场'+(x>=3&&x<=5?'中路':SIDE[x]);
+  if(y>=5) return '中场'+(x<=2?'左侧':x>=6?'右侧':'中路');
+  return '后场'+(x<=2?'左侧':x>=6?'右侧':'中路'); }
+const cxy=c=>zone(c);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function passName(h,t,air){ const dy=t.y-h.y, dx=t.x-h.x, wide=h.x<=2||h.x>=6;
+  if(dy<0) return '回传';
+  if(air){ if(wide&&t.y>=10&&t.x>=2&&t.x<=6) return '传中'; if(dy>=3) return '长传'; if(Math.abs(dx)>=3) return '大范围转移'; return '挑传'; }
+  if(dy===0) return '横传'; if(dy>=2) return '直塞'; return dx?'斜传':'短传'; }
+function dribName(h,t,duel){ if(Math.abs(t.x-4)<Math.abs(h.x-4)&&(h.x<=2||h.x>=6)) return '内切'; return duel?'强行突破':'带球推进'; }
+function shotName(h){ const d=cheb(h,GOAL); return d>=4?'远射':h.y>=10?'抽射':'起脚射门'; }
+/* one commentator line per turn, built from what the engine decided */
+function tell(act,h,ev,outcome,fin,nid){
+  const A=name(h), at=zone(h);
+  if(act.type==='shoot'){ const sn=shotName(h);
+    if(outcome==='goal') return pick([A+'在'+at+sn+'——球进了！',A+sn+'，皮球直窜网窝，进了！']);
+    const st=ev.stop;
+    if(st.miss) return pick([A+'在'+at+sn+'，偏出立柱！',A+sn+'打高了，可惜！'])+(ev.dist>=4?'离门 '+ev.dist+' 格，准星本来就难。':ev.off>=2?'角度太偏。':'');
+    if(st.d.gk) return pick([A+sn+'，被'+name(st.d)+'飞身扑出！',name(st.d)+'神勇，把'+A+'的'+sn+'挡了出去！'])+'（射门 '+h.shoot+' 对扑救 '+st.d.save+'）';
+    return pick([A+sn+'，被'+name(st.d)+'用身体挡了出来！',name(st.d)+'舍身封堵，'+A+'的射门没能打穿。']); }
+  if(act.type==='hold'){
+    if(outcome==='keep') return pick([A+'护住球，等队友插上。',A+'不急不躁，把球踩在脚下。']);
+    return pick([name(ev.foe)+'上抢得手，'+A+'没护住！',A+'护球不稳，被'+name(ev.foe)+'断走。'])+'（盘带 '+h.drib+' 对防守 '+ev.foe.def+'）'; }
+  if(act.type==='dribble'){ const dn=dribName(h,act,ev.duel);
+    if(outcome==='keep'){ const z=zone(fin[h.id]); return pick([A+dn+'，杀到'+z+'。',A+'一路'+dn+'，把球带到'+z+'。']); }
+    if(ev.foe) return pick([A+'想'+dn+'，被'+name(ev.foe)+'在'+zone(ev.at)+'一脚断下！',name(ev.foe)+'卡位漂亮，'+A+'的'+dn+'被拦了下来。'])+'（盘带 '+h.drib+' 对防守 '+ev.foe.def+'）';
+    return pick([A+'带球趟大了，球滚出了控制。',A+'一下没控住，球跑丢了。']); }
+  /* pass */
+  const pn=passName(h,ev.tgt,ev.air), B=nid&&nid!==h.id?name(P(nid)):'';
+  if(outcome==='keep'){ const z=zone(fin[nid]);
+    if(ev.air) return pick([A+pn+'，'+B+'在'+z+'争顶成功，把球控了下来！',A+'一脚'+pn+'找到'+B+'，球到了'+z+'。']);
+    return pick([A+'一脚'+pn+'，'+B+'在'+z+'稳稳停住。',A+pn+'找到'+B+'，球到了'+z+'。']); }
+  if(ev.offside) return pick([name(ev.offside)+'插得太早，越位了！',A+pn+'，可惜'+name(ev.offside)+'越位在先。']);
+  if(ev.cut&&ev.air) return pick([A+'刚要起脚，'+name(ev.foe)+'贴身封堵，球被挡了下来。',name(ev.foe)+'扑上来封住了'+A+'的'+pn+'。'])+'（传球 '+h.pass+' 对防守 '+ev.foe.def+'）';
+  if(ev.cut) return pick([A+'的'+pn+'被'+name(ev.foe)+'伸脚断下！',name(ev.foe)+'读懂了'+A+'的'+pn+'，一脚截住。'])+'（传球 '+h.pass+' 对防守 '+ev.foe.def+'）';
+  if(ev.none) return pick([A+'的'+pn+'落在'+zone(ev.land)+'，没人够得着。',A+pn+'力量太大，球落在'+zone(ev.land)+'，队友追不上。']);
+  if(ev.air) return pick([A+pn+'，落点被'+name(ev.foe)+'争顶下来。',name(ev.foe)+'在'+zone(ev.land)+'高高跃起，把'+A+'的'+pn+'顶走。'])+'（'+name(ev.foe)+'身体 '+ev.foe.phys+'）';
+  return pick([name(ev.foe)+'抢先一步，截下了'+A+'的'+pn+'。',A+pn+'，可'+name(ev.foe)+'先到了'+zone(ev.land)+'。'])+'（'+name(ev.foe)+'速度 '+ev.foe.speed+'）';
+}
 const pct=v=>Math.round(v*100)+'%';
 const Sx=d=>1/(1+Math.exp(-d/15));
 const cellsOf=p=>p.speed>=50?2:1;
@@ -431,14 +476,14 @@ function execute(){
   if(S.over||S.busy||!S.action) return;
   const ps=S.players.map(p=>Object.assign({},p)), h=ps.find(p=>p.id===S.holder), act=S.action, roll=Math.random;
   const steps=[]; let outcome='keep', why='', newHolder=h.id;
-  const keepIds=[]; let fin={}, flyKind='none', flyEnd=null, label=null, labelAt=null, tone='bad', end=null, moveNotes=null;
+  const ev={}, keepIds=[]; let fin={}, flyKind='none', flyEnd=null, label=null, labelAt=null, tone='bad', end=null, moveNotes=null;
   const check=(text,p)=>{ const r=roll(), ok=r<p; steps.push({t:text+' → '+pct(p)+'，掷 '+r.toFixed(2)+(ok?' ✓':' ✗'),c:ok?'':'x'}); return ok; };
   const head=ACT[act.type]+(act.x?' → '+cxy(act):'');
 
   if(act.type==='hold'){
     const mv=movePlan(ps,{x:h.x,y:h.y},{[h.id]:{x:h.x,y:h.y}},false); fin=mv.fin; moveNotes=mv.notes;
     const d=ps.filter(q=>q.team==='D'&&fin[q.id].x===h.x&&fin[q.id].y===h.y)[0];
-    if(d){ if(check('护球：'+name(h)+'盘带 '+h.drib+' vs '+name(d)+'防守 '+d.def+'（同格逼抢）',Sx(h.drib-d.def))){ label='护住了';tone='info';labelAt=ctr(h);} else { outcome='lost'; why=name(d)+'上抢，把球断了。'; label=name(d)+' 断球'; labelAt=ctr(h); end=ctr(h); } }
+    if(d){ if(check('护球：'+name(h)+'盘带 '+h.drib+' vs '+name(d)+'防守 '+d.def+'（同格逼抢）',Sx(h.drib-d.def))){ label='护住了';tone='info';labelAt=ctr(h);} else { outcome='lost'; why=name(d)+'上抢，把球断了。'; ev.foe=d; label=name(d)+' 断球'; labelAt=ctr(h); end=ctr(h); } }
     else steps.push({t:'没有人上来逼抢，球稳稳在脚下。',c:''});
   }
   else if(act.type==='dribble'){
@@ -448,8 +493,8 @@ function execute(){
     for(let k=1;k<=n;k++){
       cur={x:clamp(h.x+sx*k,Math.min(h.x,dest.x),Math.max(h.x,dest.x)),y:clamp(h.y+sy*k,Math.min(h.y,dest.y),Math.max(h.y,dest.y))};
       const near=ps.filter(q=>q.team==='D'&&!q.gk&&cheb(fin[q.id],cur)<=1).sort((a,c)=>c.def-a.def);
-      if(near.length){ const d=near[0];
-        if(!check('第 '+k+' 格 '+cxy(cur)+'：盘带 '+h.drib+' vs '+name(d)+'防守 '+d.def,Sx(h.drib-d.def))){ lostAt=cur; outcome='lost'; why=name(d)+'在 '+cxy(cur)+' 把球抢走。'; fin[d.id]={...cur}; keepIds.push(d.id); label=name(d)+' 抢断'; labelAt=ctr(cur); break; } }
+      if(near.length){ const d=near[0]; ev.duel=true;
+        if(!check('第 '+k+' 格 '+cxy(cur)+'：盘带 '+h.drib+' vs '+name(d)+'防守 '+d.def,Sx(h.drib-d.def))){ lostAt=cur; outcome='lost'; why=name(d)+'在 '+cxy(cur)+' 把球抢走。'; fin[d.id]={...cur}; keepIds.push(d.id); ev.foe=d; ev.at=cur; label=name(d)+' 抢断'; labelAt=ctr(cur); break; } }
       else if(!check('第 '+k+' 格 '+cxy(cur)+'：无人干扰，盘带 '+h.drib+' + 30 − 10×'+k,Sx(h.drib+30-10*k))){ lostAt=cur; outcome='lost'; why='带球失误，球趟大了。'; label='趟大了'; labelAt=ctr(cur); break; }
     }
     fin[h.id]=lostAt||dest; flyKind='ground'; flyEnd=lostAt?ctr(lostAt):feet(dest); end=lostAt?ctr(lostAt):null;
@@ -468,13 +513,13 @@ function execute(){
       const opts=[]; for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){ const c={x:tgt.x+dx,y:tgt.y+dy}; if((dx||dy)&&inPitch(c.x,c.y)&&key(c)!==key(h)) opts.push(c); }
       land=opts[Math.floor(roll()*opts.length)]; steps.push({t:'球传偏，落到 '+cxy(land)+'。',c:'x'});
     }
-    flyKind=air?'air':'ground'; flyEnd=ctr(land);
+    flyKind=air?'air':'ground'; flyEnd=ctr(land); ev.air=air; ev.tgt=tgt; ev.land=land;
     if(!cut&&!air){
       const lane=laneCells(h,land), blockers=ps.filter(q=>q.team==='D'&&lane.some(c=>c.x===q.x&&c.y===q.y)).sort((a,c)=>cheb(a,h)-cheb(c,h));
       if(!blockers.length) steps.push({t:'传球线路上没有蓝队球员。',c:''});
       for(const d of blockers){ if(!check('过 '+name(d)+'：传球 '+h.pass+' vs 防守 '+d.def,Sx(h.pass-d.def))){ cut=d; break; } }
     }
-    if(cut){ outcome='lost'; why=name(cut)+(air?'贴身把球封了下来。':'站在传球线路上，把球断了。'); fin[cut.id]={x:cut.x,y:cut.y}; keepIds.push(cut.id); flyEnd=ctr(cut); end=ctr(cut); label=name(cut)+(air?' 封堵':' 断球'); labelAt=ctr(cut); }
+    if(cut){ ev.cut=true; ev.foe=cut; outcome='lost'; why=name(cut)+(air?'贴身把球封了下来。':'站在传球线路上，把球断了。'); fin[cut.id]={x:cut.x,y:cut.y}; keepIds.push(cut.id); flyEnd=ctr(cut); end=ctr(cut); label=name(cut)+(air?' 封堵':' 断球'); labelAt=ctr(cut); }
     else{
       /* who can get to the ball this turn: ground ball = anyone who can run there; high ball = only those within one cell of where it drops */
       const can=ps.filter(q=>q.id!==h.id&&!(q.gk&&q.team===h.team)&&cheb(q,land)<=(air?1:cellsOf(q)));
@@ -494,12 +539,12 @@ function execute(){
           if(Math.abs(A.t-D.t)<.25){ steps.push({t:race+'，几乎同时到',c:''}); win=check('争球：'+name(A.q)+'身体 '+A.q.phys+' vs '+name(D.q)+'身体 '+D.q.phys,Sx(A.q.phys-D.q.phys))?A.q:D.q; }
           else { win=A.t<D.t?A.q:D.q; steps.push({t:race+'，'+name(win)+'先到',c:win.team==='A'?'':'x'}); } }
       }
-      if(!win){ outcome='lost'; why='球落在 '+cxy(land)+'，没人够得着，传丢了。'; label='传丢了'; labelAt=ctr(land); end=ctr(land); }
+      if(!win){ ev.none=true; outcome='lost'; why='球落在 '+cxy(land)+'，没人够得着，传丢了。'; label='传丢了'; labelAt=ctr(land); end=ctr(land); }
       else if(win.team==='A'){
         const line=offsideRow(ps);
-        if(win.y>line&&win.y>h.y&&win.y>=7){ outcome='offside'; why=name(win)+'传球那一刻站在第 '+win.y+' 行，越位线在第 '+line+' 行，越位。'; steps.push({t:'越位：'+why,c:'x'}); label='越位'; labelAt=ctr(land); end=ctr(land); }
+        if(win.y>line&&win.y>h.y&&win.y>=7){ ev.offside=win; outcome='offside'; why=name(win)+'传球那一刻站在第 '+win.y+' 行，越位线在第 '+line+' 行，越位。'; steps.push({t:'越位：'+why,c:'x'}); label='越位'; labelAt=ctr(land); end=ctr(land); }
         else { newHolder=win.id; fin[win.id]={...land}; label=name(win)+' 拿球'; tone='good'; labelAt=ctr(land); }
-      } else { outcome='lost'; why=name(win)+'抢先拿到球。'; fin[win.id]={...land}; keepIds.push(win.id); label=name(win)+(air?' 争到':' 抢到'); labelAt=ctr(land); end=ctr(land); }
+      } else { ev.foe=win; outcome='lost'; why=name(win)+'抢先拿到球。'; fin[win.id]={...land}; keepIds.push(win.id); label=name(win)+(air?' 争到':' 抢到'); labelAt=ctr(land); end=ctr(land); }
     }
   }
   else if(act.type==='shoot'){
@@ -507,11 +552,12 @@ function execute(){
     flyKind='shot';
     const dist=cheb(h,GOAL), off=Math.abs(h.x-4), gk=ps.find(q=>q.gk&&q.team!==h.team);
     const lane=laneCells(h,GOAL), blk=ps.filter(q=>q.team==='D'&&!q.gk&&lane.some(c=>c.x===q.x&&c.y===q.y)).sort((a,c)=>cheb(a,h)-cheb(c,h));
-    let stop=null;
+    let stop=null; ev.dist=dist; ev.off=off;
     if(!blk.length) steps.push({t:'射门线路上没有蓝队球员。',c:''});
     for(const d of blk){ if(!check('过 '+name(d)+'：射门 '+h.shoot+' vs 防守 '+d.def,Sx(h.shoot-d.def))){ stop={d,txt:name(d)+' 封堵'}; break; } }
     if(!stop && !check('打正：射门 '+h.shoot+' − 距离 '+dist+'×10 − 偏离中路 '+off+'×10',Sx(h.shoot-10*dist-10*off))) stop={miss:true};
     if(!stop && !check('过门将：射门 '+h.shoot+' vs '+name(gk)+'扑救 '+gk.save,Sx(h.shoot-gk.save))) stop={d:gk,txt:name(gk)+' 扑救'};
+    ev.stop=stop;
     if(!stop){ outcome='goal'; flyEnd={cx:3.5,cy:.45}; label='球进了！'; tone='good'; labelAt={cx:3.5,cy:1.4}; end=flyEnd; }
     else if(stop.miss){ outcome='miss'; why='射门打偏了。'; flyEnd={cx:h.x>4?4.4:2.6,cy:.3}; end=flyEnd; label='打偏'; labelAt={cx:3.5,cy:1.4}; }
     else { outcome='miss'; why=stop.txt+'。'; flyEnd=ctr(stop.d); end=flyEnd; label=stop.txt; labelAt=ctr(stop.d); }
@@ -521,6 +567,7 @@ function execute(){
      anyone else who would make it crowded steps to the nearest cell his team has free */
   const bumped=spread(ps,fin,[h.id,newHolder,...keepIds]);
   if(bumped.length) (moveNotes=moveNotes||[]).push(bumped.join('、')+'挤不进去，停在旁边一格');
+  const story=tell(act,h,ev,outcome,fin,newHolder); if(outcome!=='keep'&&outcome!=='goal') why=story;
   /* apply */
   const from=feet(h), before=snapshot();
   for(const p of S.players){ const f=fin[p.id]; if(f){ p.x=f.x; p.y=f.y; } }
@@ -537,11 +584,7 @@ function execute(){
     setTimeout(()=>{
       S.busy=false; S.rest=outcome==='keep'?null:end;
       const nh=P(S.holder);
-      logEntry.sum=outcome==='goal'?name(h)+'起脚——球进了！'
-        :outcome!=='keep'?why
-        :act.type==='pass'?name(h)+'一脚传球，'+name(nh)+'在 '+cxy(nh)+' 拿住了球。'
-        :act.type==='dribble'?name(h)+'带球推进到 '+cxy(nh)+'。'
-        :name(h)+'护住了球，等队友跑位。';
+      logEntry.sum=story;
       S.more=false;
       if(outcome==='goal'){ logEntry.steps.push({t:'球进了！用了 '+S.turn+' 个回合。',c:'v'}); finish(true,'用了 '+S.turn+' 个回合。'); }
       else if(outcome!=='keep') finish(false,why);
