@@ -151,6 +151,7 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .hud{position:absolute;z-index:9;left:0;right:0;top:0;height:calc(100%/13);display:flex;align-items:center;justify-content:space-between;padding-inline:3%;pointer-events:none}
 .hud>*{pointer-events:auto}
 .hud .turns{display:flex;gap:4px;align-items:center;color:#dfe6df;font-size:12px}
+.hud .lv{font-weight:700;color:#ffd34d;margin-right:6px;letter-spacing:.04em}
 .hud .pip{width:18px;height:6px;border-radius:2px;background:rgba(255,255,255,.22)}
 .hud .pip.used{background:rgba(255,255,255,.55)}
 .hud .pip.now{background:var(--atk)}
@@ -213,23 +214,23 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
     <div class="ball" id="ball"><svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.3" fill="#fff" stroke="#1a1a1a" stroke-width="1.1"/><g id="ballspin"><path d="M0-3.6L3.4-1.1 2.1 2.9H-2.1L-3.4-1.1Z" fill="#1a1a1a"/><g fill="#1a1a1a" stroke="#1a1a1a" stroke-width=".7" stroke-linejoin="round"><path d="M-1.9-9.1L1.9-9.1 1.2-6.6H-1.2Z"/><path d="M8.1-4.6L9.2-1 6.9-.1 6.2-2.6Z"/><path d="M6.4 7.1L3.4 9 2.4 6.7 4.6 5.5Z"/><path d="M-6.4 7.1L-3.4 9-2.4 6.7-4.6 5.5Z"/><path d="M-8.1-4.6L-9.2-1-6.9-.1-6.2-2.6Z"/></g><g stroke="#1a1a1a" stroke-width=".8" fill="none"><path d="M0-3.6V-6.6M3.4-1.1L6.4-1.6M2.1 2.9L3.6 5.6M-2.1 2.9L-3.6 5.6M-3.4-1.1L-6.4-1.6"/></g></g><circle r="9.3" fill="none" stroke="#1a1a1a" stroke-width="1.1"/></svg></div>
     <div class="pop" id="pop" hidden></div>
     <div class="menu" id="menu" hidden></div>
-    <div class="hud"><div class="turns" aria-label="回合"><span>回合</span><span class="pip" id="p1"></span><span class="pip" id="p2"></span><span class="pip" id="p3"></span></div><button class="lensbtn" id="lensbtn" aria-expanded="false">看数值</button></div>
-    <div class="lensrow" id="lens" hidden><button data-k="">号码</button><button data-k="speed">速度</button><button data-k="shoot">射门</button><button data-k="pass">传球</button><button data-k="drib">盘带</button><button data-k="def">防守</button><button data-k="phys">身体</button></div>
+    <div class="hud"><div class="turns" aria-label="回合"><span class="lv" id="lvl"></span><span class="pip" id="p1"></span><span class="pip" id="p2"></span><span class="pip" id="p3"></span></div><button class="lensbtn" id="lensbtn" aria-expanded="false">看数值</button></div>
+    <div class="lensrow" id="lens" hidden><button data-k="">号码</button><button data-k="speed">速度</button><button data-k="shoot">射门</button><button data-k="pass">传球</button><button data-k="drib">盘带</button><button data-k="def">防守</button><button data-k="phys">身体</button><button data-k="iq">意识</button></div>
     <div class="comment" id="comment" hidden></div>
     <div id="bannerHost"></div>
     <div class="screen" id="startScreen">
-      <div class="eyebrow">每日战术谜题 · 第 1 题</div>
+      <div class="eyebrow" id="lvEyebrow"></div>
       <h1>三步破门</h1>
       <ul>
-        <li>你是黄队，10 号在对方禁区前持球。</li>
+        <li id="lvIntro"></li>
         <li>点闪红圈的持球人，选一个动作：不动、带球、传球、射门。</li>
         <li>其他 21 人自动跑位，每一步都是一段战术动画。</li>
         <li>3 步之内把球送进顶上那格球门；第 3 步只能射门。丢球或越位就结束。</li>
-        <li>点任何球员看他的数值，右上角"看数值"可全场对比。</li>
+        <li>点任何球员看他的七项数值（含意识），右上角"看数值"可全场对比。</li>
       </ul>
       <div class="btns"><button id="startBtn">开始</button></div>
     </div>
-    <div class="screen" id="endScreen" hidden><h2 id="r-title"></h2><p id="r-text"></p><p id="r-tries"></p><div class="btns"><button class="sec" id="replay">回放</button><button id="again">再来一次</button></div></div>
+    <div class="screen" id="endScreen" hidden><h2 id="r-title"></h2><p id="r-text"></p><p id="r-tries"></p><div class="btns"><button class="sec" id="replay">回放</button><button id="again">再来一次</button><button id="next" hidden>下一关 ▶</button></div></div>
   </div>
 
   <div class="rules">
@@ -238,15 +239,16 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
     <span><i class="dot" style="background:var(--atk)"></i>黄队（你）</span>
     <span><i class="dot" style="background:var(--def)"></i>蓝队</span>
     <span><i class="dot" style="background:var(--gk)"></i>门将</span>
-    <span>号码下的点 = 每回合跑几格</span>
+    <span>号码下的点 = 每回合跑几格（速度 70 以上跑 2 格）</span>
     <span><i style="display:inline-block;width:14px;height:14px;box-shadow:inset 0 0 0 2px var(--atk);background:rgba(242,179,61,.16)"></i>黄框 = 控球的格子</span>
     <span><svg width="22" height="6" aria-hidden="true"><path d="M0 3H22" stroke="var(--danger)" stroke-width="2" stroke-dasharray="4 3"/></svg>越位线</span>
   </div>
     <ul>
-      <li>点任何球员，旁边弹出他的六项数值；球场右上角"看数值"可以让所有人同时显示同一项数值。</li>
+      <li>点任何球员，旁边弹出他的七项数值；球场右上角"看数值"可以让所有人同时显示同一项数值。</li>
       <li>你只指挥持球人：不动、带球（每回合最多跑几格看速度）、传球（点目标格；格里有队友就是传脚下，空格就是传空间）、射门。</li>
       <li>其他人由比赛引擎自动跑：蓝队离球最近的人扑向球，门将站在球和球门之间；黄队离落点最近的人去接球，另一人跑向最佳接应点（能安全接到传球、能射门、离球距离合适）（这部分参照足球 AI 教程 Simple Soccer）。其余所有人按阵型随球整体移动——球往前全队压上、球往一侧全队横移，站位取自机器人足球世界赛开源底座 HELIOS 的阵型数据。</li>
       <li>一格最多站一攻一守。同格就要对抗。</li>
+      <li>意识决定跑位到不到位：每回合有 1/(1+e^(−(意识−30)/15)) 的机会跑到想去的格子，否则会偏到旁边一格。意识 42 约七成，意识 75 约九成五。</li>
       <li>每次对抗都比一对数值，代入同一条曲线：差 0 分 50%，差 15 分约 73%，差 30 分约 88%。</li>
       <li>距离会扣分：传球、射门每远一格，相关数值扣 10；射门每偏离中路一列再扣 10。</li>
       <li>射门要过三关：线路上的蓝队、打正、门将。</li>
@@ -259,7 +261,8 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 (function(){
 const LONG=3,W=7,VMIN=0,VMAX=12,ROWS=13,MAXT=3,KEY='sanbu-pomen-v2',GOAL={x:4,y:12};
 /* x,y = where they stand when the puzzle starts; the home cell is the formation spot they return to (Buckland's home region) */
-const SCEN=[
+const LEVELS=[
+ {tag:'N',name:'第 N 关',opp:'4-1-4-1',intro:'你是黄队，10 号在对方禁区前持球。',players:[
   {id:'A1',team:'A',num:1,role:'门将',gk:true,x:4,y:1,speed:40,shoot:10,pass:55,drib:20,def:30,phys:70,save:70},
   {id:'A4',team:'A',num:4,role:'中卫',x:3,y:3,speed:55,shoot:35,pass:60,drib:45,def:76,phys:78},
   {id:'A5',team:'A',num:5,role:'中卫',x:5,y:3,speed:50,shoot:35,pass:58,drib:42,def:75,phys:80},
@@ -282,16 +285,43 @@ const SCEN=[
   {id:'D10',team:'D',num:10,role:'中场',x:5,y:7,speed:58,shoot:60,pass:72,drib:66,def:62,phys:64},
   {id:'D11',team:'D',num:11,role:'左前卫',x:7,y:7,speed:72,shoot:56,pass:60,drib:68,def:54,phys:56},
   {id:'D9',team:'D',num:9,role:'前锋',x:3,y:5,speed:70,shoot:75,pass:58,drib:65,def:35,phys:72}
-].map(p=>Object.assign(p,{hx:p.x,hy:p.y}));
+]},
+ {tag:'2',name:'第 2 关',opp:'4-3-3',intro:'反击！你是黄队（4-2-3-1），10 号刚在中场断下球。对手中路已经回防，边路还有机会。',players:[
+  {id:'A1',team:'A',num:1,role:'门将',gk:true,x:4,y:1,speed:49,shoot:10,pass:64,drib:20,def:30,phys:69,iq:78,save:79},
+  {id:'A4',team:'A',num:4,role:'中卫',x:3,y:2,speed:66,shoot:51,pass:64,drib:55,def:91,phys:86,iq:82},
+  {id:'A5',team:'A',num:5,role:'中卫',x:5,y:2,speed:62,shoot:43,pass:64,drib:56,def:85,phys:82,iq:79},
+  {id:'A3',team:'A',num:3,role:'左后卫',x:1,y:4,speed:84,shoot:55,pass:74,drib:69,def:77,phys:69,iq:74},
+  {id:'A2',team:'A',num:2,role:'右后卫',x:7,y:4,speed:79,shoot:55,pass:70,drib:75,def:78,phys:73,iq:75},
+  {id:'A6',team:'A',num:6,role:'后腰',x:3,y:4,speed:65,shoot:60,pass:75,drib:69,def:85,phys:77,iq:78},
+  {id:'A8',team:'A',num:8,role:'后腰',x:5,y:4,speed:67,shoot:65,pass:81,drib:65,def:86,phys:80,iq:86},
+  {id:'A10',team:'A',num:10,role:'前腰',x:4,y:6,speed:72,shoot:76,pass:80,drib:86,def:52,phys:60,iq:77},
+  {id:'A11',team:'A',num:11,role:'左边锋',x:2,y:7,speed:86,shoot:72,pass:72,drib:88,def:50,phys:61,iq:71},
+  {id:'A7',team:'A',num:7,role:'右边锋',x:6,y:6,speed:84,shoot:70,pass:74,drib:88,def:50,phys:63,iq:74},
+  {id:'A9',team:'A',num:9,role:'中锋',x:4,y:8,speed:78,shoot:91,pass:67,drib:78,def:45,phys:83,iq:76},
+  {id:'D1',team:'D',num:1,role:'门将',gk:true,x:4,y:11,speed:33,shoot:10,pass:51,drib:20,def:30,phys:59,iq:62,save:70},
+  {id:'D2',team:'D',num:2,role:'右后卫',x:2,y:8,speed:72,shoot:40,pass:58,drib:59,def:59,phys:59,iq:56},
+  {id:'D5',team:'D',num:5,role:'中卫',x:4,y:9,speed:48,shoot:31,pass:54,drib:45,def:72,phys:70,iq:67},
+  {id:'D4',team:'D',num:4,role:'中卫',x:3,y:9,speed:48,shoot:34,pass:50,drib:45,def:69,phys:73,iq:72},
+  {id:'D3',team:'D',num:3,role:'左后卫',x:6,y:8,speed:68,shoot:41,pass:56,drib:58,def:67,phys:58,iq:42},
+  {id:'D6',team:'D',num:6,role:'后腰',x:4,y:7,speed:55,shoot:49,pass:61,drib:55,def:67,phys:67,iq:71},
+  {id:'D8',team:'D',num:8,role:'中前卫',x:4,y:8,speed:56,shoot:51,pass:67,drib:62,def:60,phys:55,iq:63},
+  {id:'D10',team:'D',num:10,role:'中前卫',x:5,y:7,speed:59,shoot:52,pass:65,drib:63,def:62,phys:60,iq:63},
+  {id:'D7',team:'D',num:7,role:'右边锋',x:2,y:6,speed:72,shoot:63,pass:61,drib:72,def:36,phys:52,iq:58},
+  {id:'D9',team:'D',num:9,role:'中锋',x:4,y:4,speed:58,shoot:75,pass:48,drib:59,def:27,phys:66,iq:63},
+  {id:'D11',team:'D',num:11,role:'左边锋',x:6,y:4,speed:71,shoot:62,pass:62,drib:71,def:37,phys:48,iq:57}
+]}
+];
+LEVELS.forEach(l=>l.players.forEach(p=>{ if(p.iq==null) p.iq=p.team==='A'?72:62; p.hx=p.x; p.hy=p.y; }));
+let SCEN=LEVELS[0].players, BALL0={x:4,y:7};
 /* formation positions as a function of the ball, from HELIOS base's normal formation (MIT licence),
    converted to this grid: FORM['col,row'][role-1] = [gx, gy] in grid units, own goal at gy=0 */
 const FORM={"1,1":[[3.5,0.26],[2.45,0.74],[3.22,0.87],[1.52,0.68],[3.77,0.68],[2.62,1.23],[1.51,1.32],[3.52,1.8],[0.76,3.56],[5.08,3.4],[2.94,3.35]],"1,2":[[3.5,0.26],[2.28,0.99],[3.04,1.13],[1.34,1.2],[3.82,1.17],[2.43,1.76],[1.42,1.92],[3.49,2.38],[0.62,4.08],[5.17,3.85],[2.77,3.89]],"1,3":[[3.5,0.26],[2.0,1.77],[3.06,1.9],[1.01,1.93],[4.12,1.97],[2.27,2.48],[1.33,2.7],[3.51,3.08],[0.51,4.7],[5.23,4.37],[2.66,4.57]],"1,4":[[3.5,0.26],[1.71,2.82],[3.07,2.85],[0.74,2.78],[4.4,2.94],[2.13,3.28],[1.23,3.59],[3.53,3.84],[0.41,5.36],[5.29,4.92],[2.54,5.3]],"1,5":[[3.5,0.26],[1.51,3.72],[3.01,3.6],[0.64,3.68],[4.57,3.88],[2.02,4.14],[1.12,4.56],[3.59,4.64],[0.32,6.08],[5.33,5.5],[2.43,6.11]],"1,6":[[3.5,0.26],[1.63,3.86],[3.05,3.88],[0.65,4.2],[4.43,4.55],[2.07,4.71],[1.14,4.9],[3.52,5.5],[0.38,6.71],[5.39,6.47],[1.79,6.92]],"1,7":[[3.5,0.26],[1.65,4.28],[3.19,4.47],[0.78,4.77],[4.47,5.25],[2.07,5.52],[1.09,5.78],[3.37,6.9],[0.33,7.44],[5.37,7.31],[1.69,7.71]],"1,8":[[3.5,0.26],[1.68,4.68],[3.32,4.99],[0.76,5.27],[4.5,5.92],[2.05,6.32],[1.0,6.66],[3.31,7.71],[0.3,8.36],[5.31,8.07],[1.76,8.44]],"1,9":[[3.5,0.26],[1.73,4.96],[3.46,5.36],[0.73,5.6],[4.49,6.39],[2.03,7.0],[0.95,7.38],[3.29,8.24],[0.56,9.15],[4.94,8.81],[1.86,9.05]],"1,10":[[3.5,0.26],[1.79,5.2],[3.58,5.66],[0.73,5.69],[4.46,6.84],[2.0,7.62],[0.95,8.09],[3.23,8.82],[0.81,9.63],[4.52,9.63],[1.97,9.61]],"1,11":[[3.5,0.26],[2.07,5.39],[3.67,5.67],[0.77,5.77],[4.48,6.88],[2.02,8.11],[1.02,8.72],[3.22,9.35],[0.81,9.88],[4.24,10.26],[2.13,10.07]],"2,1":[[3.5,0.26],[2.67,0.67],[3.31,0.72],[2.04,0.58],[3.82,0.57],[2.83,1.17],[1.86,1.36],[3.78,1.68],[0.85,3.43],[5.39,3.33],[3.06,3.15]],"2,2":[[3.5,0.26],[2.56,0.98],[3.16,1.02],[1.85,1.1],[3.82,1.06],[2.68,1.69],[1.78,1.97],[3.79,2.29],[0.73,3.93],[5.49,3.79],[2.91,3.66]],"2,3":[[3.5,0.26],[2.29,1.77],[3.17,1.78],[1.46,1.84],[4.01,1.84],[2.52,2.38],[1.69,2.74],[3.82,3.0],[0.62,4.49],[5.56,4.3],[2.78,4.26]],"2,4":[[3.5,0.26],[1.99,2.87],[3.17,2.78],[1.14,2.72],[4.25,2.79],[2.38,3.19],[1.58,3.61],[3.86,3.78],[0.52,5.12],[5.63,4.85],[2.66,4.93]],"2,5":[[3.5,0.26],[1.85,3.76],[3.14,3.59],[1.03,3.62],[4.52,3.75],[2.31,4.09],[1.47,4.57],[3.95,4.62],[0.44,5.81],[5.68,5.45],[2.61,5.72]],"2,6":[[3.5,0.26],[1.9,4.09],[3.22,4.03],[1.03,4.3],[4.67,4.35],[2.4,4.81],[1.46,5.13],[3.85,5.88],[0.56,6.44],[5.55,6.26],[2.29,6.67]],"2,7":[[3.5,0.26],[2.02,4.34],[3.42,4.46],[1.01,4.91],[4.78,4.95],[2.5,5.52],[1.45,5.61],[3.72,6.94],[0.6,7.16],[5.43,7.12],[2.11,7.59]],"2,8":[[3.5,0.26],[2.07,4.76],[3.52,4.96],[0.96,5.42],[4.85,5.59],[2.48,6.29],[1.43,6.45],[3.64,7.65],[0.6,8.05],[5.33,7.98],[2.16,8.34]],"2,9":[[3.5,0.26],[2.13,5.09],[3.62,5.35],[0.92,5.78],[4.86,6.14],[2.45,7.0],[1.47,7.52],[3.56,8.27],[0.84,8.99],[5.04,8.95],[2.25,9.03]],"2,10":[[3.5,0.26],[2.19,5.31],[3.73,5.62],[0.94,5.73],[4.82,6.61],[2.42,7.59],[1.52,8.25],[3.46,8.91],[1.09,9.5],[4.6,9.77],[2.34,9.58]],"2,11":[[3.5,0.26],[2.25,5.5],[3.8,5.83],[1.0,5.62],[4.76,6.98],[2.39,8.12],[1.68,8.98],[3.33,9.53],[1.16,10.11],[4.26,10.37],[2.44,10.06]],"3,1":[[3.5,0.26],[2.99,0.6],[3.48,0.61],[2.55,0.51],[3.92,0.51],[3.12,1.13],[2.23,1.42],[4.08,1.59],[0.97,3.34],[5.66,3.29],[3.34,2.95]],"3,2":[[3.5,0.26],[2.94,0.93],[3.38,0.94],[2.38,1.03],[3.92,1.0],[3.02,1.65],[2.16,2.05],[4.11,2.2],[0.86,3.83],[5.75,3.76],[3.22,3.44]],"3,3":[[3.5,0.26],[2.73,1.74],[3.4,1.71],[2.02,1.79],[4.12,1.76],[2.9,2.34],[2.07,2.8],[4.17,2.93],[0.76,4.37],[5.84,4.27],[3.09,4.04]],"3,4":[[3.5,0.26],[2.5,2.8],[3.46,2.71],[1.65,2.68],[4.42,2.7],[2.81,3.14],[1.97,3.65],[4.24,3.73],[0.67,4.96],[5.91,4.83],[3.01,4.69]],"3,5":[[3.5,0.26],[2.35,3.75],[3.42,3.58],[1.44,3.59],[4.67,3.64],[2.73,4.06],[1.85,4.57],[4.34,4.6],[0.59,5.6],[5.98,5.43],[2.94,5.48]],"3,6":[[3.5,0.26],[2.35,4.26],[3.46,4.13],[1.4,4.37],[4.91,4.38],[2.77,4.91],[1.78,5.33],[4.36,5.6],[0.53,6.29],[5.86,6.17],[2.82,6.41]],"3,7":[[3.5,0.26],[2.47,4.42],[3.7,4.48],[1.34,5.06],[5.03,4.93],[2.93,5.56],[1.82,5.74],[4.21,6.61],[0.63,6.97],[5.53,7.06],[2.61,7.48]],"3,8":[[3.5,0.26],[2.5,4.85],[3.77,4.95],[1.25,5.59],[5.13,5.51],[2.9,6.3],[1.85,6.58],[4.14,7.27],[0.8,7.72],[5.47,7.83],[2.63,8.26]],"3,9":[[3.5,0.26],[2.53,5.18],[3.84,5.31],[1.2,5.91],[5.18,5.98],[2.87,6.98],[1.97,7.65],[3.98,8.09],[1.06,8.73],[5.14,8.88],[2.69,8.97]],"3,10":[[3.5,0.26],[2.57,5.42],[3.88,5.57],[1.19,6.07],[5.19,6.27],[2.84,7.57],[2.19,8.61],[3.76,9.0],[1.62,9.73],[4.37,10.03],[2.75,9.57]],"3,11":[[3.5,0.26],[2.61,5.6],[3.94,5.76],[1.25,5.98],[5.14,6.54],[2.81,8.07],[2.4,9.27],[3.6,9.58],[1.66,10.26],[3.75,10.39],[2.84,10.04]],"4,1":[[3.5,0.26],[3.25,0.63],[3.75,0.63],[2.82,0.54],[4.18,0.54],[3.55,1.17],[2.58,1.53],[4.42,1.53],[1.14,3.32],[5.86,3.32],[3.72,2.8]],"4,2":[[3.5,0.26],[3.31,0.93],[3.69,0.93],[2.79,1.02],[4.21,1.02],[3.49,1.65],[2.53,2.13],[4.47,2.13],[1.03,3.77],[5.97,3.77],[3.54,3.32]],"4,3":[[3.5,0.26],[3.23,1.64],[3.77,1.64],[2.56,1.74],[4.44,1.74],[3.47,2.31],[2.46,2.86],[4.54,2.86],[0.93,4.29],[6.07,4.29],[3.59,3.8]],"4,4":[[3.5,0.26],[3.07,2.71],[3.93,2.71],[2.18,2.66],[4.82,2.66],[3.5,3.13],[2.37,3.68],[4.63,3.68],[0.86,4.86],[6.14,4.86],[3.5,4.6]],"4,5":[[3.5,0.26],[3.05,3.57],[3.95,3.57],[1.93,3.57],[5.07,3.57],[3.41,4.1],[2.25,4.59],[4.75,4.59],[0.78,5.49],[6.22,5.49],[3.49,5.38]],"4,6":[[3.5,0.26],[2.94,3.87],[4.06,3.87],[1.88,4.29],[5.12,4.29],[3.31,4.79],[2.39,5.8],[4.61,5.8],[1.05,6.47],[5.95,6.47],[3.18,6.49]],"4,7":[[3.5,0.26],[2.93,4.47],[4.07,4.47],[1.71,5.04],[5.29,5.04],[3.44,5.59],[2.25,6.05],[4.75,6.05],[0.92,7.03],[6.08,7.03],[3.39,7.36]],"4,8":[[3.5,0.26],[2.91,4.93],[4.09,4.93],[1.58,5.6],[5.42,5.6],[3.28,6.32],[2.32,6.81],[4.68,6.81],[0.87,7.71],[6.13,7.71],[3.46,8.18]],"4,9":[[3.5,0.26],[2.9,5.26],[4.1,5.26],[1.52,5.96],[5.48,5.96],[3.26,6.97],[2.52,7.92],[4.48,7.92],[1.34,8.67],[5.66,8.67],[3.39,8.91]],"4,10":[[3.5,0.26],[2.89,5.51],[4.11,5.51],[1.51,6.16],[5.49,6.16],[3.23,7.54],[2.78,8.88],[4.22,8.88],[2.24,9.86],[4.76,9.86],[3.24,9.52]],"4,11":[[3.5,0.26],[2.87,5.68],[4.13,5.68],[1.55,6.25],[5.45,6.25],[3.38,8.03],[3.0,9.49],[4.0,9.49],[2.5,10.33],[4.5,10.33],[3.29,10.0]],"5,1":[[3.5,0.26],[3.52,0.61],[4.01,0.6],[3.08,0.51],[4.45,0.51],[3.88,1.13],[2.92,1.59],[4.77,1.42],[1.34,3.29],[6.03,3.34],[3.66,2.95]],"5,2":[[3.5,0.26],[3.62,0.94],[4.06,0.93],[3.08,1.0],[4.62,1.03],[3.98,1.65],[2.89,2.2],[4.84,2.05],[1.25,3.76],[6.14,3.83],[3.78,3.44]],"5,3":[[3.5,0.26],[3.6,1.71],[4.27,1.74],[2.88,1.76],[4.98,1.79],[4.1,2.34],[2.83,2.93],[4.93,2.8],[1.16,4.27],[6.24,4.37],[3.91,4.04]],"5,4":[[3.5,0.26],[3.54,2.71],[4.5,2.8],[2.58,2.7],[5.35,2.68],[4.19,3.14],[2.76,3.73],[5.03,3.65],[1.09,4.83],[6.33,4.96],[3.99,4.69]],"5,5":[[3.5,0.26],[3.58,3.58],[4.65,3.75],[2.33,3.64],[5.56,3.59],[4.27,4.06],[2.66,4.6],[5.15,4.57],[1.02,5.43],[6.41,5.6],[4.06,5.48]],"5,6":[[3.5,0.26],[3.54,4.13],[4.65,4.26],[2.09,4.38],[5.6,4.37],[4.23,4.91],[2.64,5.6],[5.22,5.33],[1.14,6.17],[6.47,6.29],[4.18,6.41]],"5,7":[[3.5,0.26],[3.3,4.48],[4.53,4.42],[1.97,4.93],[5.66,5.06],[4.06,5.56],[2.79,6.61],[5.18,5.74],[1.47,7.06],[6.37,6.97],[4.37,7.48]],"5,8":[[3.5,0.26],[3.23,4.95],[4.5,4.85],[1.87,5.51],[5.75,5.59],[4.1,6.3],[2.86,7.27],[5.15,6.58],[1.53,7.83],[6.2,7.72],[4.37,8.26]],"5,9":[[3.5,0.26],[3.16,5.31],[4.47,5.18],[1.82,5.98],[5.8,5.91],[4.13,6.98],[3.02,8.09],[5.03,7.65],[1.86,8.88],[5.94,8.73],[4.31,8.97]],"5,10":[[3.5,0.26],[3.12,5.57],[4.43,5.42],[1.81,6.27],[5.81,6.07],[4.16,7.57],[3.24,9.0],[4.81,8.61],[2.63,10.03],[5.38,9.73],[4.25,9.57]],"5,11":[[3.5,0.26],[3.06,5.76],[4.39,5.6],[1.86,6.54],[5.75,5.98],[4.19,8.07],[3.4,9.58],[4.6,9.27],[3.25,10.39],[5.34,10.26],[4.16,10.04]],"6,1":[[3.5,0.26],[3.69,0.72],[4.33,0.67],[3.18,0.57],[4.96,0.58],[4.17,1.17],[3.22,1.68],[5.14,1.36],[1.61,3.33],[6.15,3.43],[3.94,3.15]],"6,2":[[3.5,0.26],[3.84,1.02],[4.44,0.98],[3.18,1.06],[5.15,1.1],[4.32,1.69],[3.21,2.29],[5.22,1.97],[1.51,3.79],[6.27,3.93],[4.09,3.66]],"6,3":[[3.5,0.26],[3.83,1.78],[4.71,1.77],[2.99,1.84],[5.54,1.84],[4.48,2.38],[3.18,3.0],[5.31,2.74],[1.44,4.3],[6.38,4.49],[4.22,4.26]],"6,4":[[3.5,0.26],[3.83,2.78],[5.01,2.87],[2.75,2.79],[5.86,2.72],[4.62,3.19],[3.14,3.78],[5.42,3.61],[1.37,4.85],[6.48,5.12],[4.34,4.93]],"6,5":[[3.5,0.26],[3.86,3.59],[5.15,3.76],[2.48,3.75],[5.97,3.62],[4.69,4.09],[3.05,4.62],[5.53,4.57],[1.32,5.45],[6.56,5.81],[4.39,5.72]],"6,6":[[3.5,0.26],[3.78,4.03],[5.1,4.09],[2.33,4.35],[5.97,4.3],[4.6,4.81],[3.15,5.88],[5.54,5.13],[1.45,6.26],[6.44,6.44],[4.71,6.67]],"6,7":[[3.5,0.26],[3.58,4.46],[4.98,4.34],[2.22,4.95],[5.99,4.91],[4.5,5.52],[3.28,6.94],[5.55,5.61],[1.57,7.12],[6.4,7.16],[4.89,7.59]],"6,8":[[3.5,0.26],[3.48,4.96],[4.93,4.76],[2.15,5.59],[6.04,5.42],[4.52,6.29],[3.36,7.65],[5.57,6.45],[1.67,7.98],[6.4,8.05],[4.84,8.34]],"6,9":[[3.5,0.26],[3.38,5.35],[4.87,5.09],[2.14,6.14],[6.08,5.78],[4.55,7.0],[3.44,8.27],[5.53,7.52],[1.96,8.95],[6.16,8.99],[4.75,9.03]],"6,10":[[3.5,0.26],[3.27,5.62],[4.81,5.31],[2.18,6.61],[6.06,5.73],[4.58,7.59],[3.54,8.91],[5.48,8.25],[2.4,9.77],[5.91,9.5],[4.66,9.58]],"6,11":[[3.5,0.26],[3.2,5.83],[4.75,5.5],[2.24,6.98],[6.0,5.62],[4.61,8.12],[3.67,9.53],[5.32,8.98],[2.74,10.37],[5.84,10.11],[4.56,10.06]],"7,1":[[3.5,0.26],[3.78,0.87],[4.55,0.74],[3.23,0.68],[5.48,0.68],[4.38,1.23],[3.48,1.8],[5.49,1.32],[1.92,3.4],[6.24,3.56],[4.06,3.35]],"7,2":[[3.5,0.26],[3.96,1.13],[4.72,0.99],[3.18,1.17],[5.66,1.2],[4.57,1.76],[3.51,2.38],[5.58,1.92],[1.83,3.85],[6.38,4.08],[4.23,3.89]],"7,3":[[3.5,0.26],[3.94,1.9],[5.0,1.77],[2.88,1.97],[5.99,1.93],[4.73,2.48],[3.49,3.08],[5.67,2.7],[1.77,4.37],[6.49,4.7],[4.34,4.57]],"7,4":[[3.5,0.26],[3.93,2.85],[5.29,2.82],[2.6,2.94],[6.26,2.78],[4.87,3.28],[3.47,3.84],[5.77,3.59],[1.71,4.92],[6.59,5.36],[4.46,5.3]],"7,5":[[3.5,0.26],[3.99,3.6],[5.49,3.72],[2.43,3.88],[6.36,3.68],[4.98,4.14],[3.41,4.64],[5.88,4.56],[1.67,5.5],[6.68,6.08],[4.57,6.11]],"7,6":[[3.5,0.26],[3.95,3.88],[5.37,3.86],[2.57,4.55],[6.35,4.2],[4.93,4.71],[3.48,5.5],[5.86,4.9],[1.61,6.47],[6.62,6.71],[5.21,6.92]],"7,7":[[3.5,0.26],[3.81,4.47],[5.35,4.28],[2.53,5.25],[6.22,4.77],[4.93,5.52],[3.63,6.9],[5.91,5.78],[1.63,7.31],[6.67,7.44],[5.31,7.71]],"7,8":[[3.5,0.26],[3.68,4.99],[5.32,4.68],[2.5,5.92],[6.24,5.27],[4.95,6.32],[3.69,7.71],[6.0,6.66],[1.69,8.07],[6.7,8.36],[5.24,8.44]],"7,9":[[3.5,0.26],[3.54,5.36],[5.27,4.96],[2.51,6.39],[6.27,5.6],[4.97,7.0],[3.71,8.24],[6.05,7.38],[2.06,8.81],[6.44,9.15],[5.14,9.05]],"7,10":[[3.5,0.26],[3.42,5.66],[5.21,5.2],[2.54,6.84],[6.27,5.69],[5.0,7.62],[3.77,8.82],[6.05,8.09],[2.48,9.63],[6.19,9.63],[5.03,9.61]],"7,11":[[3.5,0.26],[3.33,5.67],[4.93,5.39],[2.52,6.88],[6.23,5.77],[4.98,8.11],[3.78,9.35],[5.98,8.72],[2.76,10.26],[6.19,9.88],[4.87,10.07]]};
 const ROLE={A1:1,A4:2,A5:3,A3:4,A2:5,A6:6,A8:7,A10:8,A11:9,A7:10,A9:11,D1:1,D5:2,D4:3,D3:4,D2:5,D6:6,D10:7,D8:8,D11:9,D7:10,D9:11};
-const BALL0={x:4,y:7};
 const ACT={hold:'不动',dribble:'带球',pass:'传球',shoot:'射门'};
-const STAT=[['speed','速度'],['shoot','射门'],['pass','传球'],['drib','盘带'],['def','防守'],['phys','身体']];
-let S, LENS='', store={tries:0,solved:0};
+const STAT=[['speed','速度'],['shoot','射门'],['pass','传球'],['drib','盘带'],['def','防守'],['phys','身体'],['iq','意识']];
+let S, LENS='', LV=0, store={tries:0,solved:0,lv:0};
 try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v) store=Object.assign(store,v);}catch(e){}
+LV=Math.min(LEVELS.length-1,Math.max(0,store.lv|0));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 
 const $=id=>document.getElementById(id);
@@ -348,14 +378,16 @@ function tell(act,h,ev,outcome,fin,nid){
 }
 const pct=v=>Math.round(v*100)+'%';
 const Sx=d=>1/(1+Math.exp(-d/15));
-const cellsOf=p=>p.speed>=50?2:1;
+const cellsOf=p=>p.speed>=70?2:1;
 const vel=p=>Math.max(.6,p.speed/40);
 const behind=(p,c)=>p.team==='A'?c.y<p.y:c.y>p.y;
 const arrive=(p,c)=>cheb(p,c)/vel(p)+(behind(p,c)?.3:0);
 
 function init(first){
+  const L=LEVELS[LV]; SCEN=L.players; const h0=SCEN.find(p=>p.id==='A10'); BALL0={x:h0.x,y:h0.y};
+  $('lvl').textContent=L.name; $('lvEyebrow').textContent='三步破门 · '+L.name+' · 对手 '+L.opp; $('lvIntro').textContent=L.intro;
   S={turn:1,players:SCEN.map(p=>Object.assign({},p)),holder:'A10',action:null,mode:'idle',pending:null,view:null,over:false,busy:false,rest:null,log:[],ai:null,menu:false,hint:'',more:false,phase:first?'start':'play'};
-  $('endScreen').hidden=true; $('startScreen').hidden=!first; clearFlash(); $('trails').innerHTML=''; S.start=snapshot(); S.frames=[]; render();
+  $('endScreen').hidden=true; $('startScreen').hidden=!first; clearFlash(); $('trails').innerHTML=''; $('toks').innerHTML=''; S.start=snapshot(); S.frames=[]; render();
   if(!first) banner('第 1 回合');
 }
 function banner(t){ const h=$('bannerHost'); h.innerHTML=''; const d=document.createElement('div'); d.className='banner'; d.textContent=t; h.appendChild(d); setTimeout(()=>{ if(d.parentNode) d.remove(); },1400); }
@@ -364,13 +396,14 @@ const atTeam=(x,y,team,ps)=>(ps||S.players).find(p=>p.x===x&&p.y===y&&p.team===t
 const atAny=(x,y,ps)=>(ps||S.players).filter(p=>p.x===x&&p.y===y);
 
 /* cells a straight line crosses, centre to centre (corner grazes count) */
-function laneCells(a,b){
+const LANE={};
+function laneCells(a,b){ const lk=a.x+','+a.y+'>'+b.x+','+b.y; if(LANE[lk]) return LANE[lk];
   const ax=a.x-.5,ay=a.y-.5,bx=b.x-.5,by=b.y-.5,m=new Map();
   const onLine=v=>Math.abs(v-Math.round(v))<1e-9;
   for(let i=0;i<=720;i++){const t=i/720,px=ax+(bx-ax)*t,py=ay+(by-ay)*t;
     if(onLine(px)||onLine(py)) continue;
     const x=Math.floor(px)+1,y=Math.floor(py)+1; if(inPitch(x,y)) m.set(x+','+y,{x,y});}
-  m.delete(key(a)); m.delete(key(b)); return [...m.values()];
+  m.delete(key(a)); m.delete(key(b)); return LANE[lk]=[...m.values()];
 }
 function offsideRow(ps){ return ps.filter(p=>p.team==='D').map(p=>p.y).sort((a,b)=>b-a)[1]; }
 
@@ -413,12 +446,17 @@ function spread(ps,fin,keep){
   return out;
 }
 function movePlan(ps,b,fixed,ballFree,passerId){
-  const fin={}, occ={A:new Set(),D:new Set()}, notes=[];
+  const fin={}, occ={A:new Set(),D:new Set()}, notes=[], slips=[];
   for(const id in fixed){ const p=ps.find(q=>q.id===id); fin[id]=fixed[id]; occ[p.team].add(key(fixed[id])); }
   const go=(p,t)=>{ const r=cellsOf(p); let best={x:p.x,y:p.y},bs=Infinity;
     for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const c={x:p.x+dx,y:p.y+dy};
       if(!inPitch(c.x,c.y)||occ[p.team].has(key(c))) continue;
       const s=cheb(c,t)*10+Math.hypot(c.x-t.x,c.y-t.y)+.01*cheb(c,p); if(s<bs){bs=s;best=c;} }
+    /* 意识: reaches the spot he chose with chance S(意识 − 30); otherwise drifts to a cell next to it */
+    if(!p.gk&&Math.random()>=Sx(p.iq-30)){ const alt=[];
+      for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){ const c={x:best.x+dx,y:best.y+dy};
+        if((dx||dy)&&inPitch(c.x,c.y)&&!occ[p.team].has(key(c))&&cheb(c,p)<=r) alt.push(c); }
+      if(alt.length){ best=alt[Math.floor(Math.random()*alt.length)]; slips.push(p); } }
     fin[p.id]=best; occ[p.team].add(key(best)); return best; };
   const D=ps.filter(p=>p.team==='D'&&!fin[p.id]);
   const chaser=D.filter(p=>!p.gk).sort((a,c)=>arrive(a,b)-arrive(c,b))[0];
@@ -433,7 +471,8 @@ function movePlan(ps,b,fixed,ballFree,passerId){
   const dl=ps.filter(q=>q.team==='D').map(q=>Object.assign({},q,fin[q.id])), line=offsideRow(dl);
   for(const p of A) if(!fin[p.id]){ const t=formTarget(p,b); if(!p.gk) t.y=Math.min(t.y,line); go(p,t); }
   notes.push('其余人按阵型随球整体移动');
-  return {fin,notes};
+  if(slips.length) notes.push(slips.map(p=>name(p)+'（意识 '+p.iq+'）').join('、')+'走神，没跑到想去的格子');
+  return {fin,notes,slips};
 }
 
 /* ---- engine: decision of the player on the ball, after Buckland's KickBall state ----
@@ -476,19 +515,19 @@ function execute(){
   if(S.over||S.busy||!S.action) return;
   const ps=S.players.map(p=>Object.assign({},p)), h=ps.find(p=>p.id===S.holder), act=S.action, roll=Math.random;
   const steps=[]; let outcome='keep', why='', newHolder=h.id;
-  const ev={}, keepIds=[]; let fin={}, flyKind='none', flyEnd=null, label=null, labelAt=null, tone='bad', end=null, moveNotes=null;
+  const ev={}, keepIds=[]; let slips=[], fin={}, flyKind='none', flyEnd=null, label=null, labelAt=null, tone='bad', end=null, moveNotes=null;
   const check=(text,p)=>{ const r=roll(), ok=r<p; steps.push({t:text+' → '+pct(p)+'，掷 '+r.toFixed(2)+(ok?' ✓':' ✗'),c:ok?'':'x'}); return ok; };
   const head=ACT[act.type]+(act.x?' → '+cxy(act):'');
 
   if(act.type==='hold'){
-    const mv=movePlan(ps,{x:h.x,y:h.y},{[h.id]:{x:h.x,y:h.y}},false); fin=mv.fin; moveNotes=mv.notes;
+    const mv=movePlan(ps,{x:h.x,y:h.y},{[h.id]:{x:h.x,y:h.y}},false); fin=mv.fin; moveNotes=mv.notes; slips=mv.slips;
     const d=ps.filter(q=>q.team==='D'&&fin[q.id].x===h.x&&fin[q.id].y===h.y)[0];
     if(d){ if(check('护球：'+name(h)+'盘带 '+h.drib+' vs '+name(d)+'防守 '+d.def+'（同格逼抢）',Sx(h.drib-d.def))){ label='护住了';tone='info';labelAt=ctr(h);} else { outcome='lost'; why=name(d)+'上抢，把球断了。'; ev.foe=d; label=name(d)+' 断球'; labelAt=ctr(h); end=ctr(h); } }
     else steps.push({t:'没有人上来逼抢，球稳稳在脚下。',c:''});
   }
   else if(act.type==='dribble'){
     const dest={x:act.x,y:act.y};
-    const mv=movePlan(ps,dest,{[h.id]:dest},false); fin=mv.fin; moveNotes=mv.notes;
+    const mv=movePlan(ps,dest,{[h.id]:dest},false); fin=mv.fin; moveNotes=mv.notes; slips=mv.slips;
     const n=cheb(h,dest), sx=Math.sign(dest.x-h.x), sy=Math.sign(dest.y-h.y); let cur={x:h.x,y:h.y}, lostAt=null;
     for(let k=1;k<=n;k++){
       cur={x:clamp(h.x+sx*k,Math.min(h.x,dest.x),Math.max(h.x,dest.x)),y:clamp(h.y+sy*k,Math.min(h.y,dest.y),Math.max(h.y,dest.y))};
@@ -503,7 +542,7 @@ function execute(){
     const tgt={x:act.x,y:act.y}, dist=cheb(h,tgt), air=dist>=LONG;
     steps.push({t:air?'距离 '+dist+' 格，是高球：越过中间所有人头顶，只看出脚和落点。':'距离 '+dist+' 格，是地面球：沿线的人都能拦。',c:''});
     /* everyone reacts to where the pass is aimed, nobody knows yet if it will be off target */
-    const mv=movePlan(ps,tgt,{},true,h.id); fin=mv.fin; moveNotes=mv.notes;
+    const mv=movePlan(ps,tgt,{},true,h.id); fin=mv.fin; moveNotes=mv.notes; slips=mv.slips;
     let land=tgt, cut=null;
     if(air){ /* a marker right next to the passer can block the kick */
       const close=ps.filter(q=>q.team==='D'&&!q.gk&&cheb(q,h)<=1).sort((a,c)=>c.def-a.def);
@@ -567,7 +606,9 @@ function execute(){
      anyone else who would make it crowded steps to the nearest cell his team has free */
   const bumped=spread(ps,fin,[h.id,newHolder,...keepIds]);
   if(bumped.length) (moveNotes=moveNotes||[]).push(bumped.join('、')+'挤不进去，停在旁边一格');
-  const story=tell(act,h,ev,outcome,fin,newHolder); if(outcome!=='keep'&&outcome!=='goal') why=story;
+  let story=tell(act,h,ev,outcome,fin,newHolder);
+  const ballAt=fin[newHolder]||h, dSlip=slips.filter(p=>p.team==='D'&&cheb(fin[p.id],ballAt)<=2);
+  if(outcome==='keep'&&dSlip.length) story+=' '+dSlip.map(name).join('、')+'走神，慢了半拍（意识 '+dSlip.map(p=>p.iq).join('、')+'）。'; if(outcome!=='keep'&&outcome!=='goal') why=story;
   /* apply */
   const from=feet(h), before=snapshot();
   for(const p of S.players){ const f=fin[p.id]; if(f){ p.x=f.x; p.y=f.y; } }
@@ -600,6 +641,10 @@ function finish(win,text){
   const es=$('endScreen'); es.className='screen '+(win?'win':'lose');
   $('r-title').textContent=win?'破门！':'GAME OVER'; $('r-text').textContent=text;
   $('r-tries').textContent='已尝试 '+store.tries+' 次 · 破门 '+store.solved+' 次';
+  const last=LV>=LEVELS.length-1, nx=$('next'), ag=$('again');
+  nx.hidden=false; nx.textContent=last?'回到第一关':'下一关 ▶';
+  nx.className=win?'':'sec'; ag.className=win?'sec':'';
+  if(win&&!last) $('r-tries').textContent+=' · 下一关：'+LEVELS[LV+1].name;
   setTimeout(()=>{ if(S.over&&!S.busy) es.hidden=false; },1100);
 }
 
@@ -789,6 +834,7 @@ function render(){
 
 $('startBtn').addEventListener('click',()=>{ S.phase='play'; $('startScreen').hidden=true; banner('第 1 回合'); render(); });
 $('again').addEventListener('click',()=>init(false));
+$('next').addEventListener('click',()=>{ LV=LV>=LEVELS.length-1?0:LV+1; store.lv=LV; save(); init(true); });
 $('replay').addEventListener('click',replay);
 $('lensbtn').addEventListener('click',()=>{ const l=$('lens'); l.hidden=!l.hidden; $('lensbtn').setAttribute('aria-expanded',String(!l.hidden)); render(); });
 $('comment').addEventListener('click',e=>{ if(e.target.closest('[data-close]')){ e.stopPropagation(); S.cmClosed=S.log.length; render(); return; } if(e.target.closest('[data-more]')){ S.more=!S.more; render(); } });
