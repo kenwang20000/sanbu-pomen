@@ -152,6 +152,17 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .hud>*{pointer-events:auto}
 .hud .turns{display:flex;gap:4px;align-items:center;color:#dfe6df;font-size:12px}
 .hud .lv{font-weight:700;color:#ffd34d;margin-right:6px;letter-spacing:.04em}
+.screen input{font:inherit;font-size:16px;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff;width:min(260px,80%);text-align:center}
+.screen p b{color:#ffd34d}
+.plist{display:flex;flex-direction:column;gap:6px;width:min(320px,92%);max-height:60%;overflow:auto;text-align:left}
+.screen .plist button{font-family:var(--f-body);font-weight:500;font-size:15px;letter-spacing:0;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.1);color:#eef2ec;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;width:100%}
+.screen .plist button span:last-child,.plist .row span:last-child{white-space:nowrap;color:#ffd34d}
+.plist .row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.08);font-size:15px}
+.plist h3{margin:8px 0 2px;font-family:var(--f-display);font-size:16px;color:var(--atk);letter-spacing:.06em}
+.plist .note{font-size:12px;color:#aab5ad;line-height:1.5}
+.menu .pr{align-self:center;padding:0 6px;font-family:var(--f-display);font-size:15px;color:#ffd34d;white-space:nowrap}
+.hud #stepc{margin-left:2px;color:#dfe6df}
+.hud #routep{margin-left:auto;margin-right:6px;color:#ffd34d;font-size:12px}
 .hud .pip{width:18px;height:6px;border-radius:2px;background:rgba(255,255,255,.22)}
 .hud .pip.used{background:rgba(255,255,255,.55)}
 .hud .pip.now{background:var(--atk)}
@@ -171,16 +182,16 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .comment li.v{color:#8fe0a8}
 .banner{position:absolute;z-index:10;left:50%;top:45%;transform:translate(-50%,-50%);font-family:var(--f-display);font-weight:700;font-size:40px;letter-spacing:.06em;color:#fff;text-shadow:0 3px 14px rgba(0,0,0,.6);pointer-events:none;white-space:nowrap;animation:bannerin 1.3s ease-out forwards}
 @keyframes bannerin{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0}}
-.screen{position:absolute;z-index:12;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:8%;text-align:center;background:rgba(10,18,14,.84);color:#eef2ec}
+.screen{position:absolute;z-index:12;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:8%;text-align:center;background:rgba(10,18,14,.84);color:#eef2ec}
 .screen .eyebrow{font-family:var(--f-display);font-weight:700;font-size:14px;letter-spacing:.14em;color:var(--atk)}
-.screen h1,.screen h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:44px;line-height:1;letter-spacing:.03em}
+.screen h1,.screen h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:38px;line-height:1;letter-spacing:.03em}
 .screen.win h2{color:#ffd34d}
 .screen.lose h2{color:#ff8b80}
 .screen p{margin:0;font-size:14px;color:#c9d3cb;max-width:28em}
 .screen ul{margin:0;padding:0;list-style:none;font-size:14px;color:#dfe6df;display:flex;flex-direction:column;gap:6px;text-align:left}
 .screen ul li::before{content:"·";color:var(--atk);margin-right:6px}
 .screen .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
-.screen button{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.08em;padding:12px 26px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.screen button{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:.06em;padding:10px 20px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 .screen button.sec{background:transparent;color:#eef2ec;border:1px solid rgba(255,255,255,.4)}
 .screen button:focus-visible,.lensbtn:focus-visible,.lensrow button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .rules .legend{margin-bottom:10px}
@@ -214,7 +225,7 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
     <div class="ball" id="ball"><svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.3" fill="#fff" stroke="#1a1a1a" stroke-width="1.1"/><g id="ballspin"><path d="M0-3.6L3.4-1.1 2.1 2.9H-2.1L-3.4-1.1Z" fill="#1a1a1a"/><g fill="#1a1a1a" stroke="#1a1a1a" stroke-width=".7" stroke-linejoin="round"><path d="M-1.9-9.1L1.9-9.1 1.2-6.6H-1.2Z"/><path d="M8.1-4.6L9.2-1 6.9-.1 6.2-2.6Z"/><path d="M6.4 7.1L3.4 9 2.4 6.7 4.6 5.5Z"/><path d="M-6.4 7.1L-3.4 9-2.4 6.7-4.6 5.5Z"/><path d="M-8.1-4.6L-9.2-1-6.9-.1-6.2-2.6Z"/></g><g stroke="#1a1a1a" stroke-width=".8" fill="none"><path d="M0-3.6V-6.6M3.4-1.1L6.4-1.6M2.1 2.9L3.6 5.6M-2.1 2.9L-3.6 5.6M-3.4-1.1L-6.4-1.6"/></g></g><circle r="9.3" fill="none" stroke="#1a1a1a" stroke-width="1.1"/></svg></div>
     <div class="pop" id="pop" hidden></div>
     <div class="menu" id="menu" hidden></div>
-    <div class="hud"><div class="turns" aria-label="回合"><span class="lv" id="lvl"></span><span class="pip" id="p1"></span><span class="pip" id="p2"></span><span class="pip" id="p3"></span></div><button class="lensbtn" id="lensbtn" aria-expanded="false">看数值</button></div>
+    <div class="hud"><div class="turns" aria-label="进度"><span class="lv" id="lvl"></span><span id="stepc"></span></div><span id="routep"></span><button class="lensbtn" id="lensbtn" aria-expanded="false">看数值</button></div>
     <div class="lensrow" id="lens" hidden><button data-k="">号码</button><button data-k="speed">速度</button><button data-k="shoot">射门</button><button data-k="pass">传球</button><button data-k="drib">盘带</button><button data-k="def">防守</button><button data-k="phys">身体</button><button data-k="iq">意识</button></div>
     <div class="comment" id="comment" hidden></div>
     <div id="bannerHost"></div>
@@ -223,14 +234,15 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
       <h1>三步破门</h1>
       <ul>
         <li id="lvIntro"></li>
-        <li>点闪红圈的持球人，选一个动作：不动、带球、传球、射门。</li>
-        <li>其他 21 人自动跑位，每一步都是一段战术动画。</li>
-        <li>3 步之内把球送进顶上那格球门；第 3 步只能射门。丢球或越位就结束。</li>
-        <li>点任何球员看他的七项数值（含意识），右上角"看数值"可全场对比。</li>
+        <li>点闪红圈的持球人选动作，动手前会显示这一步的成功率。</li>
+        <li>进球后可以再来：找更多不同的进球线路，成功率之和越高，排名越高。</li>
       </ul>
-      <div class="btns"><button id="startBtn">开始</button></div>
+      <input id="nick" maxlength="12" placeholder="你的昵称（上排行榜用）" autocomplete="off">
+      <div class="btns"><button id="startBtn">开始</button><button class="sec" id="histBtn">历史谜题</button><button class="sec" id="rankBtn">排行榜</button></div>
     </div>
-    <div class="screen" id="endScreen" hidden><h2 id="r-title"></h2><p id="r-text"></p><p id="r-tries"></p><div class="btns"><button class="sec" id="replay">回放</button><button id="again">再来一次</button><button id="next" hidden>下一关 ▶</button></div></div>
+    <div class="screen" id="endScreen" hidden><h2 id="r-title"></h2><p id="r-text"></p><p id="r-tries"></p><div class="btns"><button class="sec" id="replay">回放</button><button id="again">再来一次</button><button class="sec" id="endRank">排行榜</button><button class="sec" id="endHist">历史谜题</button></div></div>
+    <div class="screen" id="histScreen" hidden><h2>历史谜题</h2><div class="plist" id="plist"></div><div class="btns"><button class="sec" data-home="1">返回</button></div></div>
+    <div class="screen" id="rankScreen" hidden><h2>排行榜</h2><div class="plist" id="rlist"></div><div class="btns"><button class="sec" data-home="1">返回</button></div></div>
   </div>
 
   <div class="rules">
@@ -239,27 +251,28 @@ header p{margin:6px 0 0;color:var(--muted);font-size:14px}
     <span><i class="dot" style="background:var(--atk)"></i>黄队（你）</span>
     <span><i class="dot" style="background:var(--def)"></i>蓝队</span>
     <span><i class="dot" style="background:var(--gk)"></i>门将</span>
-    <span>号码下的点 = 每回合跑几格（速度 70 以上跑 2 格）</span>
+    <span>号码下的点 = 每步跑几格（速度 70 以上跑 2 格）</span>
     <span><i style="display:inline-block;width:14px;height:14px;box-shadow:inset 0 0 0 2px var(--atk);background:rgba(242,179,61,.16)"></i>黄框 = 控球的格子</span>
     <span><svg width="22" height="6" aria-hidden="true"><path d="M0 3H22" stroke="var(--danger)" stroke-width="2" stroke-dasharray="4 3"/></svg>越位线</span>
   </div>
     <ul>
       <li>点任何球员，旁边弹出他的七项数值；球场右上角"看数值"可以让所有人同时显示同一项数值。</li>
-      <li>你只指挥持球人：不动、带球（每回合最多跑几格看速度）、传球（点目标格；格里有队友就是传脚下，空格就是传空间）、射门。</li>
+      <li>你只指挥持球人：不动、带球（每步最多跑几格看速度）、传球（点目标格；格里有队友就是传脚下，空格就是传空间）、射门。</li>
       <li>其他人由比赛引擎自动跑：蓝队离球最近的人扑向球，门将站在球和球门之间；黄队离落点最近的人去接球，另一人跑向最佳接应点（能安全接到传球、能射门、离球距离合适）（这部分参照足球 AI 教程 Simple Soccer）。其余所有人按阵型随球整体移动——球往前全队压上、球往一侧全队横移，站位取自机器人足球世界赛开源底座 HELIOS 的阵型数据。</li>
       <li>一格最多站一攻一守。同格就要对抗。</li>
-      <li>意识决定跑位到不到位：每回合有 1/(1+e^(−(意识−30)/15)) 的机会跑到想去的格子，否则会偏到旁边一格。意识 42 约七成，意识 75 约九成五。</li>
+      <li>意识决定跑位到不到位：每步有 1/(1+e^(−(意识−30)/15)) 的机会跑到想去的格子，否则会偏到旁边一格。意识 42 约七成，意识 75 约九成五。</li>
       <li>每次对抗都比一对数值，代入同一条曲线：差 0 分 50%，差 15 分约 73%，差 30 分约 88%。</li>
       <li>距离会扣分：传球、射门每远一格，相关数值扣 10；射门每偏离中路一列再扣 10。</li>
       <li>射门要过三关：线路上的蓝队、打正、门将。</li>
-      <li>越位按传球那一刻的站位判。丢球、越位、射门不进，或 3 回合用完，都算失败。</li>
+      <li>越位按传球那一刻的站位判。丢球、越位、射门不进，或 30 步用完，都算这次失败；失败不扣分。</li>
+      <li>计分：一条进球线路的成功率 = 每一步成功率相乘。排行榜 = 今天所有不同线路的成功率之和（动作顺序完全相同才算同一条，多停一步也是新线路）。球商榜 = 成功率之和 ÷ 尝试次数，尝试满 5 次才上榜。</li>
     </ul>
   </div>
 </div>
 
 <script>
 (function(){
-const LONG=3,W=7,VMIN=0,VMAX=12,ROWS=13,MAXT=3,KEY='sanbu-pomen-v2',GOAL={x:4,y:12};
+const LONG=3,W=7,VMIN=0,VMAX=12,ROWS=13,MAXT=30,KEY='sanbu-pomen-v3',GOAL={x:4,y:12};
 /* x,y = where they stand when the puzzle starts; the home cell is the formation spot they return to (Buckland's home region) */
 const LEVELS=[
  {tag:'N',name:'第 N 关',opp:'4-1-4-1',intro:'你是黄队，10 号在对方禁区前持球。',players:[
@@ -319,9 +332,13 @@ const FORM={"1,1":[[3.5,0.26],[2.45,0.74],[3.22,0.87],[1.52,0.68],[3.77,0.68],[2
 const ROLE={A1:1,A4:2,A5:3,A3:4,A2:5,A6:6,A8:7,A10:8,A11:9,A7:10,A9:11,D1:1,D5:2,D4:3,D3:4,D2:5,D6:6,D10:7,D8:8,D11:9,D7:10,D9:11};
 const ACT={hold:'不动',dribble:'带球',pass:'传球',shoot:'射门'};
 const STAT=[['speed','速度'],['shoot','射门'],['pass','传球'],['drib','盘带'],['def','防守'],['phys','身体'],['iq','意识']];
-let S, LENS='', LV=0, store={tries:0,solved:0,lv:0};
+let S, LENS='', LV=0, CUR=0, store={days:{},nick:''};
 try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v) store=Object.assign(store,v);}catch(e){}
-LV=Math.min(LEVELS.length-1,Math.max(0,store.lv|0));
+/* daily puzzles: one per date, all past ones stay playable; the old level ladder (LEVELS) is kept as the source */
+const IQMIN=5;
+const PUZ=[{id:'2026-10-05',lv:0},{id:'2026-10-06',lv:1}];
+(function(){ const t=new Date(), today=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  let k=0; PUZ.forEach((p,i)=>{ const [y,m,d]=p.id.split('-'); p.label=(+m)+' 月 '+(+d)+' 日'; if(p.id<=today) k=i; }); PUZ[k].today=true; CUR=k; })();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 
 const $=id=>document.getElementById(id);
@@ -384,11 +401,12 @@ const behind=(p,c)=>p.team==='A'?c.y<p.y:c.y>p.y;
 const arrive=(p,c)=>cheb(p,c)/vel(p)+(behind(p,c)?.3:0);
 
 function init(first){
-  const L=LEVELS[LV]; SCEN=L.players; const h0=SCEN.find(p=>p.id==='A10'); BALL0={x:h0.x,y:h0.y};
-  $('lvl').textContent=L.name; $('lvEyebrow').textContent='三步破门 · '+L.name+' · 对手 '+L.opp; $('lvIntro').textContent=L.intro;
-  S={turn:1,players:SCEN.map(p=>Object.assign({},p)),holder:'A10',action:null,mode:'idle',pending:null,view:null,over:false,busy:false,rest:null,log:[],ai:null,menu:false,hint:'',more:false,phase:first?'start':'play'};
+  const Pz=PUZ[CUR], L=LEVELS[Pz.lv]; SCEN=L.players; const h0=SCEN.find(p=>p.id==='A10'); BALL0={x:h0.x,y:h0.y};
+  $('lvl').textContent=Pz.label.replace(/ /g,''); $('lvEyebrow').textContent=(Pz.today?'今日谜题 · ':'历史谜题 · ')+Pz.label+' · 对手 '+L.opp; $('lvIntro').textContent=L.intro;
+  ['histScreen','rankScreen'].forEach(id=>$(id).hidden=true); $('nick').value=store.nick||'';
+  S={route:[],turn:1,players:SCEN.map(p=>Object.assign({},p)),holder:'A10',action:null,mode:'idle',pending:null,view:null,over:false,busy:false,rest:null,log:[],ai:null,menu:false,hint:'',more:false,phase:first?'start':'play'};
   $('endScreen').hidden=true; $('startScreen').hidden=!first; clearFlash(); $('trails').innerHTML=''; $('toks').innerHTML=''; S.start=snapshot(); S.frames=[]; render();
-  if(!first) banner('第 1 回合');
+  if(!first) banner('第 1 步');
 }
 function banner(t){ const h=$('bannerHost'); h.innerHTML=''; const d=document.createElement('div'); d.className='banner'; d.textContent=t; h.appendChild(d); setTimeout(()=>{ if(d.parentNode) d.remove(); },1400); }
 const P=id=>S.players.find(p=>p.id===id);
@@ -511,9 +529,8 @@ function decideHolder(ps,hid){
 }
 
 /* ---- resolution ---- */
-function execute(){
-  if(S.over||S.busy||!S.action) return;
-  const ps=S.players.map(p=>Object.assign({},p)), h=ps.find(p=>p.id===S.holder), act=S.action, roll=Math.random;
+function resolve(ps0,hid,act,roll){
+  const ps=ps0.map(p=>Object.assign({},p)), h=ps.find(p=>p.id===hid);
   const steps=[]; let outcome='keep', why='', newHolder=h.id;
   const ev={}, keepIds=[]; let slips=[], fin={}, flyKind='none', flyEnd=null, label=null, labelAt=null, tone='bad', end=null, moveNotes=null;
   const check=(text,p)=>{ const r=roll(), ok=r<p; steps.push({t:text+' → '+pct(p)+'，掷 '+r.toFixed(2)+(ok?' ✓':' ✗'),c:ok?'':'x'}); return ok; };
@@ -563,7 +580,7 @@ function execute(){
       /* who can get to the ball this turn: ground ball = anyone who can run there; high ball = only those within one cell of where it drops */
       const can=ps.filter(q=>q.id!==h.id&&!(q.gk&&q.team===h.team)&&cheb(q,land)<=(air?1:cellsOf(q)));
       let win=null;
-      if(!can.length){ steps.push({t:'落点 '+cxy(land)+' 这回合谁都跑不到。',c:'x'}); }
+      if(!can.length){ steps.push({t:'落点 '+cxy(land)+' 这一步谁都跑不到。',c:'x'}); }
       else if(air){
         const wsum=can.reduce((a,q)=>a+Math.exp(q.phys/15),0);
         steps.push({t:'争顶 '+cxy(land)+'：'+can.map(q=>name(q)+'身体 '+q.phys+'（'+pct(Math.exp(q.phys/15)/wsum)+'）').join('，'),c:''});
@@ -609,12 +626,29 @@ function execute(){
   let story=tell(act,h,ev,outcome,fin,newHolder);
   const ballAt=fin[newHolder]||h, dSlip=slips.filter(p=>p.team==='D'&&cheb(fin[p.id],ballAt)<=2);
   if(outcome==='keep'&&dSlip.length) story+=' '+dSlip.map(name).join('、')+'走神，慢了半拍（意识 '+dSlip.map(p=>p.iq).join('、')+'）。'; if(outcome!=='keep'&&outcome!=='goal') why=story;
+  return {h,steps,outcome,why,newHolder,fin,flyKind,flyEnd,label,labelAt,tone,end,moveNotes,story,head};
+}
+/* chance that one step works (keeps the ball, or scores for a shot), estimated by running the
+   same resolution many times on the current position; shown before the player commits */
+const actKey=a=>a.type[0]+(a.x?a.x+','+a.y:'');
+function stepChance(act){
+  const k=S.turn+'|'+S.holder+'|'+actKey(act); S.pc=S.pc||{}; if(S.pc[k]!=null) return S.pc[k];
+  let ok=0; const N=240;
+  for(let i=0;i<N;i++){ const r=resolve(S.players,S.holder,act,Math.random); if(act.type==='shoot'?r.outcome==='goal':r.outcome==='keep') ok++; }
+  return S.pc[k]=ok/N;
+}
+const routeP=()=>S.route.reduce((a,r)=>a*r.p,1);
+function execute(){
+  if(S.over||S.busy||!S.action) return;
+  const act=S.action; S.route.push({k:actKey(act),p:stepChance(act)});
+  const R=resolve(S.players,S.holder,act,Math.random);
+  const {h,steps,outcome,why,newHolder,fin,flyKind,flyEnd,label,labelAt,tone,end,moveNotes,story,head}=R;
   /* apply */
   const from=feet(h), before=snapshot();
   for(const p of S.players){ const f=fin[p.id]; if(f){ p.x=f.x; p.y=f.y; } }
   if(newHolder!==h.id) S.holder=newHolder;
   if(moveNotes) steps.push({t:'跑位：'+moveNotes.join('；')+'。',c:'m'});
-  S.log.push({t:'第 '+S.turn+' 回合 · '+name(h)+head,steps,turn:S.turn});
+  S.log.push({t:'第 '+S.turn+' 步 · '+name(h)+head,steps,turn:S.turn});
   const logEntry=S.log[S.log.length-1];
   S.action=null; S.mode='idle'; S.pending=null; S.busy=true; S.ai=null; S.view=null; S.menu=false;
   const after=snapshot(); drawTrails(before,after);
@@ -627,24 +661,29 @@ function execute(){
       const nh=P(S.holder);
       logEntry.sum=story;
       S.more=false;
-      if(outcome==='goal'){ logEntry.steps.push({t:'球进了！用了 '+S.turn+' 个回合。',c:'v'}); finish(true,'用了 '+S.turn+' 个回合。'); }
+      if(outcome==='goal'){ logEntry.steps.push({t:'球进了！用了 '+S.turn+' 步。',c:'v'}); finish(true,'用了 '+S.turn+' 步。'); }
       else if(outcome!=='keep') finish(false,why);
-      else if(S.turn>=MAXT){ S.turn++; finish(false,'3 个回合用完，还没进球。'); S.rest=null; }
-      else { S.turn++; banner('第 '+S.turn+' 回合'); }
+      else if(S.turn>=MAXT){ S.turn++; finish(false,'30 步用完，还没进球。'); S.rest=null; }
+      else { S.turn++; banner('第 '+S.turn+' 步'); }
       render();
     },label?450:150);
   };
   if(flyKind==='none'||!flyEnd) setTimeout(done,1050); else fly(from,flyEnd,flyKind,done);
 }
+function dayRec(){ const id=PUZ[CUR].id; store.days=store.days||{}; return store.days[id]=store.days[id]||{tries:0,goals:0,routes:{}}; }
+const sumOf=d=>Object.values(d.routes).reduce((a,v)=>a+v,0)*100;
+const iqOf=d=>d.tries>=IQMIN?sumOf(d)/d.tries:null;
 function finish(win,text){
-  S.over=true; store.tries++; if(win) store.solved++; save();
+  S.over=true; const d=dayRec(); d.tries++;
+  let line='';
+  if(win){ d.goals++; const key=S.route.map(r=>r.k).join('|'), p=routeP();
+    if(d.routes[key]==null){ d.routes[key]=p; line='新线路！这条线路成功率 '+Math.round(p*100)+'%，排行榜 +'+Math.round(p*100)+'。'; }
+    else line='这条线路之前用过（成功率 '+Math.round(p*100)+'%），同一线路只算一次。'; }
+  save();
   const es=$('endScreen'); es.className='screen '+(win?'win':'lose');
-  $('r-title').textContent=win?'破门！':'GAME OVER'; $('r-text').textContent=text;
-  $('r-tries').textContent='已尝试 '+store.tries+' 次 · 破门 '+store.solved+' 次';
-  const last=LV>=LEVELS.length-1, nx=$('next'), ag=$('again');
-  nx.hidden=false; nx.textContent=last?'回到第一关':'下一关 ▶';
-  nx.className=win?'':'sec'; ag.className=win?'sec':'';
-  if(win&&!last) $('r-tries').textContent+=' · 下一关：'+LEVELS[LV+1].name;
+  $('r-title').textContent=win?'破门！':'没进'; $('r-text').textContent=(line?line+' ':'')+text;
+  const iq=iqOf(d);
+  $('r-tries').innerHTML=(PUZ[CUR].today?'今日':PUZ[CUR].label)+'：成功率之和 <b>'+Math.round(sumOf(d))+'</b> · 线路 '+Object.keys(d.routes).length+' 条 · 尝试 '+d.tries+' 次 · 进球 '+d.goals+' 次<br>球商 '+(iq==null?'（尝试满 '+IQMIN+' 次后计算）':'<b>'+iq.toFixed(1)+'</b>');
   setTimeout(()=>{ if(S.over&&!S.busy) es.hidden=false; },1100);
 }
 
@@ -710,7 +749,7 @@ function cellClick(x,y){
   if(!S.over&&S.mode==='target'){
     if(S.pending==='dribble'){
       const d=cheb(h,{x,y});
-      if(d<1||d>cellsOf(h)||atTeam(x,y,'A')){ status(name(h)+'速度 '+h.speed+'，每回合最多带 '+cellsOf(h)+' 格，且不能带进队友所在的格子。'); return; }
+      if(d<1||d>cellsOf(h)||atTeam(x,y,'A')){ status(name(h)+'速度 '+h.speed+'，每步最多带 '+cellsOf(h)+' 格，且不能带进队友所在的格子。'); return; }
     } else if(x===h.x&&y===h.y){ status('选一个别的格子。'); return; }
     S.action={type:S.pending,x,y}; S.mode='idle'; S.pending=null; S.ai=null; S.view=here.length?here[0].id:null; render(); return;
   }
@@ -803,7 +842,7 @@ function render(){
       :'<button data-a="hold">不动</button><button data-a="dribble">带球</button><button data-a="pass">传球</button><button data-a="shoot">射门</button>';
     place(h); menu.hidden=false;
   } else if(!S.over&&!S.busy&&S.action){
-    menu.innerHTML='<button class="go2" data-a="go">执行 ▶</button><button class="x" data-a="cancel">取消</button>';
+    menu.innerHTML='<span class="pr">成功率 '+Math.round(stepChance(S.action)*100)+'%</span><button class="go2" data-a="go">执行 ▶</button><button class="x" data-a="cancel">取消</button>';
     place(S.action.x?{x:S.action.x,y:S.action.y}:h); menu.hidden=false;
   } else menu.hidden=true;
   /* stats card goes above the player, the menu below; swap when there is no room above */
@@ -814,27 +853,42 @@ function render(){
     else if(menuOn&&menuAt){ const b=anchorOf(menuAt); placeBox(menu,b,fits(menu,b,'below')?'below':'above'); } }
   else if(menuOn&&menuAt){ const b=anchorOf(menuAt); placeBox(menu,b,fits(menu,b,'below')?'below':'above'); }
   /* hud */
-  for(let i=1;i<=3;i++) $('p'+i).className='pip'+(i<S.turn?' used':'')+(i===S.turn&&!S.over?' now':'');
+  $('stepc').textContent=Math.min(S.turn,MAXT)+'/'+MAXT+' 步'; $('routep').textContent=S.route.length?'线路 '+Math.round(routeP()*100)+'%':'';
   $('lensbtn').classList.toggle('on',!$('lens').hidden||!!LENS);
   /* commentator box: hint while choosing, otherwise what happened last turn and whose move it is */
   const cm=$('comment'); let html='';
   const last=S.log[S.log.length-1];
   if(S.phase!=='play'||S.busy) html='';
   else if(S.hint) html='<div class="cs">'+S.hint+'</div>';
-  else if(S.mode==='target') html='<div class="cs">'+(S.pending==='dribble'?'<b>带球</b>：点一个亮起的格子（'+name(h)+'这回合最多带 '+cellsOf(h)+' 格）。':'<b>传球</b>：闪黄框的是队友，点他就是传脚下；点空格就是传空间。2 格以内走地面，沿线能被拦；3 格以上是高球，只看出脚和落点争顶。')+'</div>';
+  else if(S.mode==='target') html='<div class="cs">'+(S.pending==='dribble'?'<b>带球</b>：点一个亮起的格子（'+name(h)+'这步最多带 '+cellsOf(h)+' 格）。':'<b>传球</b>：闪黄框的是队友，点他就是传脚下；点空格就是传空间。2 格以内走地面，沿线能被拦；3 格以上是高球，只看出脚和落点争顶。')+'</div>';
   else if(S.action&&S.ai) html='<div class="ct">建议</div><div class="cs">'+name(h)+ACT[S.action.type]+(S.action.x?' → '+cxy(S.action):'')+'。'+S.ai+'</div>';
   else if(S.action) html='';
-  else if(last&&!S.over){ html='<div class="ct">第 '+last.turn+' 回合 · 解说</div><div class="cs">'+last.sum+'</div>'+(S.more?'<ul>'+last.steps.map(x=>'<li class="'+x.c+'">'+x.t+'</li>').join('')+'</ul>':'')+'<button class="more" data-more="1">'+(S.more?'收起判定 ▴':'看判定细节 ▾')+'</button><div class="cp">'+(S.turn>=MAXT?'最后一回合，只能射门：点闪红圈的 '+name(h)+'。':'轮到你：点闪红圈的 '+name(h)+'。')+'</div>'; }
+  else if(last&&!S.over){ html='<div class="ct">第 '+last.turn+' 步 · 解说</div><div class="cs">'+last.sum+'</div>'+(S.more?'<ul>'+last.steps.map(x=>'<li class="'+x.c+'">'+x.t+'</li>').join('')+'</ul>':'')+'<button class="more" data-more="1">'+(S.more?'收起判定 ▴':'看判定细节 ▾')+'</button><div class="cp">'+(S.turn>=MAXT?'最后一步，只能射门：点闪红圈的 '+name(h)+'。':'轮到你：点闪红圈的 '+name(h)+'。')+'</div>'; }
   else if(last&&S.over) html='';
-  else html='<div class="cs">第 1 回合：点闪红圈的 '+name(h)+'，选一个动作。</div>';
+  else html='<div class="cs">第 1 步：点闪红圈的 '+name(h)+'，选一个动作。</div>';
   if(S.menu||S.view||S.cmClosed===S.log.length) html='';
   else if(html) html='<button class="cx" data-close="1" aria-label="关闭解说">×</button>'+html; /* while the menu or a stats card is open, the commentary steps aside */
   cm.innerHTML=html; cm.hidden=!html;
 }
 
-$('startBtn').addEventListener('click',()=>{ S.phase='play'; $('startScreen').hidden=true; banner('第 1 回合'); render(); });
+$('startBtn').addEventListener('click',()=>{ keepNick(); S.phase='play'; $('startScreen').hidden=true; banner('第 1 步'); render(); });
 $('again').addEventListener('click',()=>init(false));
-$('next').addEventListener('click',()=>{ LV=LV>=LEVELS.length-1?0:LV+1; store.lv=LV; save(); init(true); });
+function showHist(){ ['startScreen','endScreen','rankScreen'].forEach(id=>$(id).hidden=true);
+  $('plist').innerHTML=PUZ.map((p,i)=>{ const d=(store.days||{})[p.id]; return '<button data-p="'+i+'"><span>'+(p.today?'今日 · ':'')+p.label+' · 对手 '+LEVELS[p.lv].opp+'</span><span>'+(d?Math.round(sumOf(d))+' 分':'未玩')+'</span></button>'; }).reverse().join('');
+  $('histScreen').hidden=false; }
+function showRank(){ ['startScreen','endScreen','histScreen'].forEach(id=>$(id).hidden=true);
+  const P0=PUZ.find(p=>p.today), d=(store.days||{})[P0.id]||{tries:0,goals:0,routes:{}}, nm=store.nick||'你', iq=iqOf(d);
+  $('rlist').innerHTML='<h3>'+P0.label+' · 成功率之和</h3><div class="row"><span>1. '+nm+'</span><span>'+Math.round(sumOf(d))+'</span></div>'
+   +'<h3>球商榜</h3>'+(iq==null?'<div class="note">今天尝试满 '+IQMIN+' 次才上榜（你已尝试 '+d.tries+' 次）。</div>':'<div class="row"><span>1. '+nm+'</span><span>'+iq.toFixed(1)+'</span></div>')
+   +'<div class="note">测试版：排行榜暂时只记这台手机上的成绩，多人排行榜接上后台后开放。</div>';
+  $('rankScreen').hidden=false; }
+const keepNick=()=>{ const v=$('nick').value.trim(); if(v!==store.nick){ store.nick=v; save(); } };
+$('histBtn').addEventListener('click',()=>{ keepNick(); showHist(); });
+$('rankBtn').addEventListener('click',()=>{ keepNick(); showRank(); });
+$('endHist').addEventListener('click',showHist);
+$('endRank').addEventListener('click',showRank);
+$('plist').addEventListener('click',e=>{ const b=e.target.closest('[data-p]'); if(!b) return; CUR=+b.dataset.p; init(true); });
+document.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>init(true)));
 $('replay').addEventListener('click',replay);
 $('lensbtn').addEventListener('click',()=>{ const l=$('lens'); l.hidden=!l.hidden; $('lensbtn').setAttribute('aria-expanded',String(!l.hidden)); render(); });
 $('comment').addEventListener('click',e=>{ if(e.target.closest('[data-close]')){ e.stopPropagation(); S.cmClosed=S.log.length; render(); return; } if(e.target.closest('[data-more]')){ S.more=!S.more; render(); } });
