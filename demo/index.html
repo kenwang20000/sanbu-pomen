@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>新引擎演示</title>
+</head>
+<body>
+<style>
+:root{--bg:#eef1ec;--fg:#1d2420;--muted:#5c665f;--panel:#fff;--line:#cfd6cf;--felt:#2c5a43;--chalk:rgba(240,244,236,.85);--atk:#f2b33d;--def:#2f4e7c;--gk:#7a9cc9;--accent:#d9902b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141916;--fg:#e8ede8;--muted:#9aa59d;--panel:#1d2420;--line:#33403a}}
+:root[data-theme="dark"]{--bg:#141916;--fg:#e8ede8;--muted:#9aa59d;--panel:#1d2420;--line:#33403a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif}
+.wrap{max-width:460px;margin:0 auto;padding:12px 16px 40px}
+h1{font-size:18px;margin:4px 0 2px}
+.sub{font-size:12px;color:var(--muted);margin:0 0 8px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+.score{font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.score .a{color:#c98a10}.score .b{color:#4d78b8}
+.clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.board{position:relative;width:min(100%,calc((100vh - 230px)*7/13));aspect-ratio:7/13;margin:0 auto;background:var(--felt);border-radius:6px;box-shadow:0 0 0 6px #4a3a26;overflow:hidden}
+@supports not (aspect-ratio:1){.board{height:0;padding-bottom:185.7%}}
+.board svg.pitch{position:absolute;inset:0;width:100%;height:100%}
+.tok{position:absolute;left:0;top:0;width:calc(100%/7);height:calc(100%/13);transition:transform var(--dur,1.2s) cubic-bezier(.45,.05,.35,1);pointer-events:auto;cursor:pointer}
+.tok .disc{position:absolute;left:50%;top:44%;width:66%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:clamp(10px,3.4vw,15px);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.tok.A .disc{background:var(--atk);color:#2b1c02}.tok.B .disc{background:var(--def);color:#f2f5fa}.tok.gk .disc{background:var(--gk);color:#10203a}
+.tok.shL .disc{left:32%}.tok.shR .disc{left:68%}
+.tok.shL .rl{transform:translateX(-18%)}.tok.shR .rl{transform:translateX(18%)}.tok.shL .rl,.tok.shR .rl{font-size:clamp(7px,2vw,9px)}
+.tok .rl{position:absolute;left:0;right:0;bottom:2%;text-align:center;font-size:clamp(8px,2.4vw,10px);color:#fff;text-shadow:0 1px 2px #000;white-space:nowrap;opacity:.95}
+.tok.has .disc{outline:3px solid #fff;outline-offset:1px}
+.tok.sel .disc{outline:3px solid #ff6b5e}
+.ball{position:absolute;left:0;top:0;width:calc(100%/7*.3);height:calc(100%/13*.3);border-radius:50%;background:#fff;border:2px solid #111;z-index:5;transition:transform var(--bdur,1s) ease-in-out;pointer-events:none}
+.ctrl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 6px}
+button{font:inherit;font-size:14px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:#2a1a04;font-weight:700}
+.ev{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;min-height:40px}
+.ev b{color:var(--accent)}
+.info{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:6px;display:none}
+.log{font-size:12px;color:var(--muted);margin-top:8px;max-height:200px;overflow:auto;line-height:1.6}
+.legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+</style>
+<div class="wrap">
+  <h1>新引擎演示 · 4-2-3-1 对 4-2-3-1</h1>
+  <p class="sub">全自动比赛，每步约 2 秒。黄队向上攻，蓝队向下攻。点球员看他此刻的角色和理由。</p>
+  <div class="bar"><span class="score"><span class="a">黄 <span id="sa">0</span></span> : <span class="b"><span id="sb">0</span> 蓝</span></span><span class="clock" id="clock">0 秒 / 30 秒</span></div>
+  <div class="board" id="board">
+    <svg class="pitch" viewBox="0 0 7 13" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="0" y="0" width="7" height="1" fill="#22463a"/><rect x="0" y="12" width="7" height="1" fill="#22463a"/>
+      <g fill="none" stroke="rgba(240,244,236,.85)" stroke-width="2" vector-effect="non-scaling-stroke">
+        <rect x="0" y="1" width="7" height="11" vector-effect="non-scaling-stroke"/>
+        <path d="M0 6.5H7" vector-effect="non-scaling-stroke"/>
+        <ellipse cx="3.5" cy="6.5" rx="0.87" ry="0.87" vector-effect="non-scaling-stroke"/>
+        <rect x="1.45" y="1" width="4.1" height="1.73" vector-effect="non-scaling-stroke"/>
+        <rect x="1.45" y="10.27" width="4.1" height="1.73" vector-effect="non-scaling-stroke"/>
+        <rect x="3" y="0.35" width="1" height="0.65" vector-effect="non-scaling-stroke"/>
+        <rect x="3" y="12" width="1" height="0.65" vector-effect="non-scaling-stroke"/>
+      </g>
+      <g stroke="rgba(240,244,236,.12)" stroke-width="1" vector-effect="non-scaling-stroke" id="grid"></g>
+    </svg>
+    <div id="toks"></div>
+    <div class="ball" id="ball"></div>
+  </div>
+  <div class="ctrl">
+    <button class="pri" id="play">▶ 开始</button><button id="stepb">下一步</button><button id="speed">速度 1×</button><button id="more">再踢 30 秒</button><button id="newm">换一局</button>
+  </div>
+  <div class="ev" id="ev">点"开始"，看 30 秒自动比赛。</div>
+  <div class="info" id="info"></div>
+  <div class="legend">角色：<b>持球</b> · <b>接应</b>（第二进攻人，在球侧前方给线路）· <b>前插</b>/<b>拉宽</b>（第三进攻人）· <b>上抢</b>（第一防守人）· <b>保护</b>（第二防守人）· <b>平衡</b>（保持阵型）· 门将</div>
+  <div class="log" id="log"></div>
+</div>
+<script>
+var FORM={"1,1":[[3.5,0.26],[2.45,0.74],[3.22,0.87],[1.52,0.68],[3.77,0.68],[2.62,1.23],[1.51,1.32],[3.52,1.8],[0.76,3.56],[5.08,3.4],[2.94,3.35]],"1,2":[[3.5,0.26],[2.28,0.99],[3.04,1.13],[1.34,1.2],[3.82,1.17],[2.43,1.76],[1.42,1.92],[3.49,2.38],[0.62,4.08],[5.17,3.85],[2.77,3.89]],"1,3":[[3.5,0.26],[2.0,1.77],[3.06,1.9],[1.01,1.93],[4.12,1.97],[2.27,2.48],[1.33,2.7],[3.51,3.08],[0.51,4.7],[5.23,4.37],[2.66,4.57]],"1,4":[[3.5,0.26],[1.71,2.82],[3.07,2.85],[0.74,2.78],[4.4,2.94],[2.13,3.28],[1.23,3.59],[3.53,3.84],[0.41,5.36],[5.29,4.92],[2.54,5.3]],"1,5":[[3.5,0.26],[1.51,3.72],[3.01,3.6],[0.64,3.68],[4.57,3.88],[2.02,4.14],[1.12,4.56],[3.59,4.64],[0.32,6.08],[5.33,5.5],[2.43,6.11]],"1,6":[[3.5,0.26],[1.63,3.86],[3.05,3.88],[0.65,4.2],[4.43,4.55],[2.07,4.71],[1.14,4.9],[3.52,5.5],[0.38,6.71],[5.39,6.47],[1.79,6.92]],"1,7":[[3.5,0.26],[1.65,4.28],[3.19,4.47],[0.78,4.77],[4.47,5.25],[2.07,5.52],[1.09,5.78],[3.37,6.9],[0.33,7.44],[5.37,7.31],[1.69,7.71]],"1,8":[[3.5,0.26],[1.68,4.68],[3.32,4.99],[0.76,5.27],[4.5,5.92],[2.05,6.32],[1.0,6.66],[3.31,7.71],[0.3,8.36],[5.31,8.07],[1.76,8.44]],"1,9":[[3.5,0.26],[1.73,4.96],[3.46,5.36],[0.73,5.6],[4.49,6.39],[2.03,7.0],[0.95,7.38],[3.29,8.24],[0.56,9.15],[4.94,8.81],[1.86,9.05]],"1,10":[[3.5,0.26],[1.79,5.2],[3.58,5.66],[0.73,5.69],[4.46,6.84],[2.0,7.62],[0.95,8.09],[3.23,8.82],[0.81,9.63],[4.52,9.63],[1.97,9.61]],"1,11":[[3.5,0.26],[2.07,5.39],[3.67,5.67],[0.77,5.77],[4.48,6.88],[2.02,8.11],[1.02,8.72],[3.22,9.35],[0.81,9.88],[4.24,10.26],[2.13,10.07]],"2,1":[[3.5,0.26],[2.67,0.67],[3.31,0.72],[2.04,0.58],[3.82,0.57],[2.83,1.17],[1.86,1.36],[3.78,1.68],[0.85,3.43],[5.39,3.33],[3.06,3.15]],"2,2":[[3.5,0.26],[2.56,0.98],[3.16,1.02],[1.85,1.1],[3.82,1.06],[2.68,1.69],[1.78,1.97],[3.79,2.29],[0.73,3.93],[5.49,3.79],[2.91,3.66]],"2,3":[[3.5,0.26],[2.29,1.77],[3.17,1.78],[1.46,1.84],[4.01,1.84],[2.52,2.38],[1.69,2.74],[3.82,3.0],[0.62,4.49],[5.56,4.3],[2.78,4.26]],"2,4":[[3.5,0.26],[1.99,2.87],[3.17,2.78],[1.14,2.72],[4.25,2.79],[2.38,3.19],[1.58,3.61],[3.86,3.78],[0.52,5.12],[5.63,4.85],[2.66,4.93]],"2,5":[[3.5,0.26],[1.85,3.76],[3.14,3.59],[1.03,3.62],[4.52,3.75],[2.31,4.09],[1.47,4.57],[3.95,4.62],[0.44,5.81],[5.68,5.45],[2.61,5.72]],"2,6":[[3.5,0.26],[1.9,4.09],[3.22,4.03],[1.03,4.3],[4.67,4.35],[2.4,4.81],[1.46,5.13],[3.85,5.88],[0.56,6.44],[5.55,6.26],[2.29,6.67]],"2,7":[[3.5,0.26],[2.02,4.34],[3.42,4.46],[1.01,4.91],[4.78,4.95],[2.5,5.52],[1.45,5.61],[3.72,6.94],[0.6,7.16],[5.43,7.12],[2.11,7.59]],"2,8":[[3.5,0.26],[2.07,4.76],[3.52,4.96],[0.96,5.42],[4.85,5.59],[2.48,6.29],[1.43,6.45],[3.64,7.65],[0.6,8.05],[5.33,7.98],[2.16,8.34]],"2,9":[[3.5,0.26],[2.13,5.09],[3.62,5.35],[0.92,5.78],[4.86,6.14],[2.45,7.0],[1.47,7.52],[3.56,8.27],[0.84,8.99],[5.04,8.95],[2.25,9.03]],"2,10":[[3.5,0.26],[2.19,5.31],[3.73,5.62],[0.94,5.73],[4.82,6.61],[2.42,7.59],[1.52,8.25],[3.46,8.91],[1.09,9.5],[4.6,9.77],[2.34,9.58]],"2,11":[[3.5,0.26],[2.25,5.5],[3.8,5.83],[1.0,5.62],[4.76,6.98],[2.39,8.12],[1.68,8.98],[3.33,9.53],[1.16,10.11],[4.26,10.37],[2.44,10.06]],"3,1":[[3.5,0.26],[2.99,0.6],[3.48,0.61],[2.55,0.51],[3.92,0.51],[3.12,1.13],[2.23,1.42],[4.08,1.59],[0.97,3.34],[5.66,3.29],[3.34,2.95]],"3,2":[[3.5,0.26],[2.94,0.93],[3.38,0.94],[2.38,1.03],[3.92,1.0],[3.02,1.65],[2.16,2.05],[4.11,2.2],[0.86,3.83],[5.75,3.76],[3.22,3.44]],"3,3":[[3.5,0.26],[2.73,1.74],[3.4,1.71],[2.02,1.79],[4.12,1.76],[2.9,2.34],[2.07,2.8],[4.17,2.93],[0.76,4.37],[5.84,4.27],[3.09,4.04]],"3,4":[[3.5,0.26],[2.5,2.8],[3.46,2.71],[1.65,2.68],[4.42,2.7],[2.81,3.14],[1.97,3.65],[4.24,3.73],[0.67,4.96],[5.91,4.83],[3.01,4.69]],"3,5":[[3.5,0.26],[2.35,3.75],[3.42,3.58],[1.44,3.59],[4.67,3.64],[2.73,4.06],[1.85,4.57],[4.34,4.6],[0.59,5.6],[5.98,5.43],[2.94,5.48]],"3,6":[[3.5,0.26],[2.35,4.26],[3.46,4.13],[1.4,4.37],[4.91,4.38],[2.77,4.91],[1.78,5.33],[4.36,5.6],[0.53,6.29],[5.86,6.17],[2.82,6.41]],"3,7":[[3.5,0.26],[2.47,4.42],[3.7,4.48],[1.34,5.06],[5.03,4.93],[2.93,5.56],[1.82,5.74],[4.21,6.61],[0.63,6.97],[5.53,7.06],[2.61,7.48]],"3,8":[[3.5,0.26],[2.5,4.85],[3.77,4.95],[1.25,5.59],[5.13,5.51],[2.9,6.3],[1.85,6.58],[4.14,7.27],[0.8,7.72],[5.47,7.83],[2.63,8.26]],"3,9":[[3.5,0.26],[2.53,5.18],[3.84,5.31],[1.2,5.91],[5.18,5.98],[2.87,6.98],[1.97,7.65],[3.98,8.09],[1.06,8.73],[5.14,8.88],[2.69,8.97]],"3,10":[[3.5,0.26],[2.57,5.42],[3.88,5.57],[1.19,6.07],[5.19,6.27],[2.84,7.57],[2.19,8.61],[3.76,9.0],[1.62,9.73],[4.37,10.03],[2.75,9.57]],"3,11":[[3.5,0.26],[2.61,5.6],[3.94,5.76],[1.25,5.98],[5.14,6.54],[2.81,8.07],[2.4,9.27],[3.6,9.58],[1.66,10.26],[3.75,10.39],[2.84,10.04]],"4,1":[[3.5,0.26],[3.25,0.63],[3.75,0.63],[2.82,0.54],[4.18,0.54],[3.55,1.17],[2.58,1.53],[4.42,1.53],[1.14,3.32],[5.86,3.32],[3.72,2.8]],"4,2":[[3.5,0.26],[3.31,0.93],[3.69,0.93],[2.79,1.02],[4.21,1.02],[3.49,1.65],[2.53,2.13],[4.47,2.13],[1.03,3.77],[5.97,3.77],[3.54,3.32]],"4,3":[[3.5,0.26],[3.23,1.64],[3.77,1.64],[2.56,1.74],[4.44,1.74],[3.47,2.31],[2.46,2.86],[4.54,2.86],[0.93,4.29],[6.07,4.29],[3.59,3.8]],"4,4":[[3.5,0.26],[3.07,2.71],[3.93,2.71],[2.18,2.66],[4.82,2.66],[3.5,3.13],[2.37,3.68],[4.63,3.68],[0.86,4.86],[6.14,4.86],[3.5,4.6]],"4,5":[[3.5,0.26],[3.05,3.57],[3.95,3.57],[1.93,3.57],[5.07,3.57],[3.41,4.1],[2.25,4.59],[4.75,4.59],[0.78,5.49],[6.22,5.49],[3.49,5.38]],"4,6":[[3.5,0.26],[2.94,3.87],[4.06,3.87],[1.88,4.29],[5.12,4.29],[3.31,4.79],[2.39,5.8],[4.61,5.8],[1.05,6.47],[5.95,6.47],[3.18,6.49]],"4,7":[[3.5,0.26],[2.93,4.47],[4.07,4.47],[1.71,5.04],[5.29,5.04],[3.44,5.59],[2.25,6.05],[4.75,6.05],[0.92,7.03],[6.08,7.03],[3.39,7.36]],"4,8":[[3.5,0.26],[2.91,4.93],[4.09,4.93],[1.58,5.6],[5.42,5.6],[3.28,6.32],[2.32,6.81],[4.68,6.81],[0.87,7.71],[6.13,7.71],[3.46,8.18]],"4,9":[[3.5,0.26],[2.9,5.26],[4.1,5.26],[1.52,5.96],[5.48,5.96],[3.26,6.97],[2.52,7.92],[4.48,7.92],[1.34,8.67],[5.66,8.67],[3.39,8.91]],"4,10":[[3.5,0.26],[2.89,5.51],[4.11,5.51],[1.51,6.16],[5.49,6.16],[3.23,7.54],[2.78,8.88],[4.22,8.88],[2.24,9.86],[4.76,9.86],[3.24,9.52]],"4,11":[[3.5,0.26],[2.87,5.68],[4.13,5.68],[1.55,6.25],[5.45,6.25],[3.38,8.03],[3.0,9.49],[4.0,9.49],[2.5,10.33],[4.5,10.33],[3.29,10.0]],"5,1":[[3.5,0.26],[3.52,0.61],[4.01,0.6],[3.08,0.51],[4.45,0.51],[3.88,1.13],[2.92,1.59],[4.77,1.42],[1.34,3.29],[6.03,3.34],[3.66,2.95]],"5,2":[[3.5,0.26],[3.62,0.94],[4.06,0.93],[3.08,1.0],[4.62,1.03],[3.98,1.65],[2.89,2.2],[4.84,2.05],[1.25,3.76],[6.14,3.83],[3.78,3.44]],"5,3":[[3.5,0.26],[3.6,1.71],[4.27,1.74],[2.88,1.76],[4.98,1.79],[4.1,2.34],[2.83,2.93],[4.93,2.8],[1.16,4.27],[6.24,4.37],[3.91,4.04]],"5,4":[[3.5,0.26],[3.54,2.71],[4.5,2.8],[2.58,2.7],[5.35,2.68],[4.19,3.14],[2.76,3.73],[5.03,3.65],[1.09,4.83],[6.33,4.96],[3.99,4.69]],"5,5":[[3.5,0.26],[3.58,3.58],[4.65,3.75],[2.33,3.64],[5.56,3.59],[4.27,4.06],[2.66,4.6],[5.15,4.57],[1.02,5.43],[6.41,5.6],[4.06,5.48]],"5,6":[[3.5,0.26],[3.54,4.13],[4.65,4.26],[2.09,4.38],[5.6,4.37],[4.23,4.91],[2.64,5.6],[5.22,5.33],[1.14,6.17],[6.47,6.29],[4.18,6.41]],"5,7":[[3.5,0.26],[3.3,4.48],[4.53,4.42],[1.97,4.93],[5.66,5.06],[4.06,5.56],[2.79,6.61],[5.18,5.74],[1.47,7.06],[6.37,6.97],[4.37,7.48]],"5,8":[[3.5,0.26],[3.23,4.95],[4.5,4.85],[1.87,5.51],[5.75,5.59],[4.1,6.3],[2.86,7.27],[5.15,6.58],[1.53,7.83],[6.2,7.72],[4.37,8.26]],"5,9":[[3.5,0.26],[3.16,5.31],[4.47,5.18],[1.82,5.98],[5.8,5.91],[4.13,6.98],[3.02,8.09],[5.03,7.65],[1.86,8.88],[5.94,8.73],[4.31,8.97]],"5,10":[[3.5,0.26],[3.12,5.57],[4.43,5.42],[1.81,6.27],[5.81,6.07],[4.16,7.57],[3.24,9.0],[4.81,8.61],[2.63,10.03],[5.38,9.73],[4.25,9.57]],"5,11":[[3.5,0.26],[3.06,5.76],[4.39,5.6],[1.86,6.54],[5.75,5.98],[4.19,8.07],[3.4,9.58],[4.6,9.27],[3.25,10.39],[5.34,10.26],[4.16,10.04]],"6,1":[[3.5,0.26],[3.69,0.72],[4.33,0.67],[3.18,0.57],[4.96,0.58],[4.17,1.17],[3.22,1.68],[5.14,1.36],[1.61,3.33],[6.15,3.43],[3.94,3.15]],"6,2":[[3.5,0.26],[3.84,1.02],[4.44,0.98],[3.18,1.06],[5.15,1.1],[4.32,1.69],[3.21,2.29],[5.22,1.97],[1.51,3.79],[6.27,3.93],[4.09,3.66]],"6,3":[[3.5,0.26],[3.83,1.78],[4.71,1.77],[2.99,1.84],[5.54,1.84],[4.48,2.38],[3.18,3.0],[5.31,2.74],[1.44,4.3],[6.38,4.49],[4.22,4.26]],"6,4":[[3.5,0.26],[3.83,2.78],[5.01,2.87],[2.75,2.79],[5.86,2.72],[4.62,3.19],[3.14,3.78],[5.42,3.61],[1.37,4.85],[6.48,5.12],[4.34,4.93]],"6,5":[[3.5,0.26],[3.86,3.59],[5.15,3.76],[2.48,3.75],[5.97,3.62],[4.69,4.09],[3.05,4.62],[5.53,4.57],[1.32,5.45],[6.56,5.81],[4.39,5.72]],"6,6":[[3.5,0.26],[3.78,4.03],[5.1,4.09],[2.33,4.35],[5.97,4.3],[4.6,4.81],[3.15,5.88],[5.54,5.13],[1.45,6.26],[6.44,6.44],[4.71,6.67]],"6,7":[[3.5,0.26],[3.58,4.46],[4.98,4.34],[2.22,4.95],[5.99,4.91],[4.5,5.52],[3.28,6.94],[5.55,5.61],[1.57,7.12],[6.4,7.16],[4.89,7.59]],"6,8":[[3.5,0.26],[3.48,4.96],[4.93,4.76],[2.15,5.59],[6.04,5.42],[4.52,6.29],[3.36,7.65],[5.57,6.45],[1.67,7.98],[6.4,8.05],[4.84,8.34]],"6,9":[[3.5,0.26],[3.38,5.35],[4.87,5.09],[2.14,6.14],[6.08,5.78],[4.55,7.0],[3.44,8.27],[5.53,7.52],[1.96,8.95],[6.16,8.99],[4.75,9.03]],"6,10":[[3.5,0.26],[3.27,5.62],[4.81,5.31],[2.18,6.61],[6.06,5.73],[4.58,7.59],[3.54,8.91],[5.48,8.25],[2.4,9.77],[5.91,9.5],[4.66,9.58]],"6,11":[[3.5,0.26],[3.2,5.83],[4.75,5.5],[2.24,6.98],[6.0,5.62],[4.61,8.12],[3.67,9.53],[5.32,8.98],[2.74,10.37],[5.84,10.11],[4.56,10.06]],"7,1":[[3.5,0.26],[3.78,0.87],[4.55,0.74],[3.23,0.68],[5.48,0.68],[4.38,1.23],[3.48,1.8],[5.49,1.32],[1.92,3.4],[6.24,3.56],[4.06,3.35]],"7,2":[[3.5,0.26],[3.96,1.13],[4.72,0.99],[3.18,1.17],[5.66,1.2],[4.57,1.76],[3.51,2.38],[5.58,1.92],[1.83,3.85],[6.38,4.08],[4.23,3.89]],"7,3":[[3.5,0.26],[3.94,1.9],[5.0,1.77],[2.88,1.97],[5.99,1.93],[4.73,2.48],[3.49,3.08],[5.67,2.7],[1.77,4.37],[6.49,4.7],[4.34,4.57]],"7,4":[[3.5,0.26],[3.93,2.85],[5.29,2.82],[2.6,2.94],[6.26,2.78],[4.87,3.28],[3.47,3.84],[5.77,3.59],[1.71,4.92],[6.59,5.36],[4.46,5.3]],"7,5":[[3.5,0.26],[3.99,3.6],[5.49,3.72],[2.43,3.88],[6.36,3.68],[4.98,4.14],[3.41,4.64],[5.88,4.56],[1.67,5.5],[6.68,6.08],[4.57,6.11]],"7,6":[[3.5,0.26],[3.95,3.88],[5.37,3.86],[2.57,4.55],[6.35,4.2],[4.93,4.71],[3.48,5.5],[5.86,4.9],[1.61,6.47],[6.62,6.71],[5.21,6.92]],"7,7":[[3.5,0.26],[3.81,4.47],[5.35,4.28],[2.53,5.25],[6.22,4.77],[4.93,5.52],[3.63,6.9],[5.91,5.78],[1.63,7.31],[6.67,7.44],[5.31,7.71]],"7,8":[[3.5,0.26],[3.68,4.99],[5.32,4.68],[2.5,5.92],[6.24,5.27],[4.95,6.32],[3.69,7.71],[6.0,6.66],[1.69,8.07],[6.7,8.36],[5.24,8.44]],"7,9":[[3.5,0.26],[3.54,5.36],[5.27,4.96],[2.51,6.39],[6.27,5.6],[4.97,7.0],[3.71,8.24],[6.05,7.38],[2.06,8.81],[6.44,9.15],[5.14,9.05]],"7,10":[[3.5,0.26],[3.42,5.66],[5.21,5.2],[2.54,6.84],[6.27,5.69],[5.0,7.62],[3.77,8.82],[6.05,8.09],[2.48,9.63],[6.19,9.63],[5.03,9.61]],"7,11":[[3.5,0.26],[3.33,5.67],[4.93,5.39],[2.52,6.88],[6.23,5.77],[4.98,8.11],[3.78,9.35],[5.98,8.72],[2.76,10.26],[6.19,9.88],[4.87,10.07]]};
+/* 新引擎 v0.1 —— 只管逻辑，不碰界面。
+   时间：1 步 = 1T ≈ 2 秒。场地 7 列 × 11 行，每格约 9.7 × 9.5 米。
+   黄队(A)向上进攻（球门在第 12 行），蓝队(B)向下进攻（球门在第 0 行）。
+   所有判断都在"进攻方向朝上"的本队坐标里做，蓝队坐标镜像。 */
+const Engine=(function(){
+const W=7,H=11,CMX=9.71,CMY=9.55,BALL_V=4,MAXD=Math.hypot(6*CMX,10*CMY);
+const S=d=>1/(1+Math.exp(-d/15));
+const cellsOf=p=>p.speed>=70?2:1;
+const cheb=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+const meters=(a,b)=>Math.hypot((a.x-b.x)*CMX,(a.y-b.y)*CMY);
+const inP=(x,y)=>x>=1&&x<=W&&y>=1&&y<=H;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const key=c=>c.x+','+c.y;
+const F=(team,c)=>team==='A'?{x:c.x,y:c.y}:{x:8-c.x,y:12-c.y};   /* 世界坐标 <-> 本队坐标（自反） */
+const other=t=>t==='A'?'B':'A';
+const name=p=>(p.team==='A'?'黄':'蓝')+p.num;
+
+/* ---------- 球队（4-2-3-1）：role = HELIOS 角色号 ---------- */
+const TEAMS={
+ A:[['门将',1,1,49,64,20,30],['左后卫',3,4,84,74,69,77],['中卫',4,2,66,64,55,91],['中卫',5,3,62,64,56,85],['右后卫',2,5,79,70,75,78],
+    ['后腰',6,6,65,75,69,85],['后腰',8,7,67,81,65,86],['前腰',10,8,72,80,86,52],['左边锋',11,9,86,72,88,50],['右边锋',7,10,84,74,88,50],['中锋',9,11,78,67,78,45]],
+ B:[['门将',1,1,43,56,20,30],['左后卫',3,4,78,68,64,68],['中卫',4,2,59,58,46,76],['中卫',5,3,55,57,48,80],['右后卫',2,5,72,65,67,72],
+    ['后腰',6,6,61,74,65,77],['后腰',8,7,56,72,59,75],['前腰',10,8,68,73,76,46],['左边锋',11,9,80,64,76,43],['右边锋',7,10,82,68,79,42],['中锋',9,11,66,54,65,36]]
+};
+
+/* ---------- 阵型：HELIOS 表 + 4-2-3-1 的小调整（本队坐标，连续值，单位格） ---------- */
+function formSpot(role,b){
+  const t=FORM[key({x:clamp(b.x,1,7),y:clamp(b.y,1,11)})]; const g=r=>({x:t[r-1][0],y:t[r-1][1]});
+  let p=g(role);
+  if(role===6){ p=g(6); p.x-=0.6; }
+  if(role===7){ p=g(6); p.x+=0.6; }
+  if(role===8){ const a=g(7),c=g(8),f=g(11); p={x:(a.x+c.x)/2,y:(a.y+c.y)/2*0.5+(f.y)*0.5-0.6}; }
+  return p;
+}
+const toCell=p=>({x:clamp(Math.floor(p.x)+1,1,W),y:clamp(Math.floor(p.y)+1,1,H)});
+
+/* ---------- 随机数（可复现） ---------- */
+function rng(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ---------- xG：只看位置和挡在线路上的人，与射手无关 ---------- */
+function laneCells(a,b){ /* 本队/世界通用：连线穿过的格子（不含两端），擦角不算 */
+  const ax=a.x-.5,ay=a.y-.5,bx=b.x-.5,by=b.y-.5,m=new Map(), on=v=>Math.abs(v-Math.round(v))<1e-9;
+  for(let i=0;i<=400;i++){ const t=i/400,px=ax+(bx-ax)*t,py=ay+(by-ay)*t; if(on(px)||on(py)) continue;
+    const x=Math.floor(px)+1,y=Math.floor(py)+1; if(inP(x,y)) m.set(x+','+y,{x,y}); }
+  m.delete(key(a)); m.delete(key(b)); return [...m.values()];
+}
+function xG0(c){ /* c 为本队坐标格 */
+  const dx=(c.x-4)*CMX, dy=(11.5-c.y)*CMY+0.5*CMY; const d=Math.hypot(dx,dy);
+  const ang=Math.max(0.15,1-Math.abs(dx)/35);
+  return Math.min(0.5,0.75*Math.exp(-0.13*d)*ang);
+}
+function shotBlockers(st,team,c){ const goal={x:4,y:12}, lane=laneCells(c,goal);
+  return st.players.filter(q=>q.team!==team&&!q.gk&&lane.some(l=>{const w=F(team,q); return w.x===l.x&&w.y===l.y;})); }
+function xG(st,team,c){ return xG0(c)*Math.pow(0.6,shotBlockers(st,team,c).length); }
+/* 威胁值：球在这一格对进攻方有多大价值（近似 xT） */
+const threat=c=>0.004+0.05*Math.pow((c.y-1)/10,2)*(1-0.05*Math.abs(c.x-4))+xG0(c)*0.6;
+
+/* ---------- 比赛状态 ---------- */
+function newMatch(seed){
+  const R=rng(seed||1), players=[];
+  for(const team of ['A','B']) for(const [role,num,hr,speed,pass,drib,def] of TEAMS[team])
+    players.push({id:team+num,team,num,pos:role,hr,speed,pass,drib,def,gk:hr===1,x:0,y:0,role:'',why:''});
+  const st={players,R,poss:'A',ball:{x:4,y:6,holder:null},step:0,score:{A:0,B:0},log:[],last:null};
+  kickoff(st,'A'); return st;
+}
+function kickoff(st,team){
+  const c={x:4,y:6};
+  for(const p of st.players){ const fb=F(p.team,c); let s=toCell(formSpot(p.hr,fb)); s.y=Math.min(s.y,p.team===team?6:5); const w=F(p.team,s); p.x=w.x; p.y=w.y; }
+  const cf=st.players.find(p=>p.team===team&&p.hr===11); const kc=F(team,{x:4,y:6}); cf.x=kc.x; cf.y=kc.y;
+  spreadAll(st,[cf.id]);
+  st.poss=team; st.ball={x:cf.x,y:cf.y,holder:cf.id};
+}
+const P=(st,id)=>st.players.find(p=>p.id===id);
+
+/* 越位线（本队坐标）：对方倒数第二人的行；本方半场不越位；球在前面以球为准 */
+function offsideRow(st,team){ const ys=st.players.filter(q=>q.team!==team).map(q=>F(team,q).y).sort((a,b)=>b-a); return Math.max(ys[1],6,F(team,st.ball).y); }
+
+/* ---------- 一脚传球的判定（预估或真实掷骰） ---------- */
+function passModel(st,h,t){ /* h 持球人，t 目标格（世界坐标） */
+  const team=h.team, d=meters(h,t), adj=cheb(h,t)===1, nCells=d/9.6, flight=nCells/BALL_V;
+  const acc=adj?1:1-Math.pow(d/MAXD,2)*(100-h.pass)/100;
+  const opp=st.players.filter(q=>q.team!==team&&!q.gk);
+  const cut=[];                                   /* 中短传（< 3 格）：线路前方一格之内的人可拦截 */
+  if(nCells<3&&!adj){
+    const hx=h.x,hy=h.y,vx=t.x-hx,vy=t.y-hy,L=Math.hypot(vx,vy);
+    for(const q of opp){ const px=q.x-hx,py=q.y-hy, proj=(px*vx+py*vy)/L, perp=Math.abs(px*vy-py*vx)/L;
+      if(proj<=0.3||proj>=L-0.3||perp>1) continue;
+      const pr=S(q.def-h.pass)*(perp<=0.5?1:0.5); cut.push({q,pr,proj}); }
+    cut.sort((a,b)=>a.proj-b.proj);
+  }
+  return {d,adj,nCells,flight,acc,cut};
+}
+function landContest(st,team,land,flight,receiverId){ /* 落点：飞行时间内谁赶得到 */
+  const reach=p=>cheb(p,land)/cellsOf(p);
+  const A=st.players.filter(p=>p.team===team&&!p.gk&&reach(p)<=flight+0.01).sort((a,b)=>reach(a)-reach(b));
+  const D=st.players.filter(p=>p.team!==team&&!p.gk&&reach(p)<=flight+0.01).sort((a,b)=>reach(a)-reach(b));
+  const a=A.find(p=>p.id===receiverId)||A[0], dd=D[0];
+  return {a,d:dd,pKeep:!a?0:!dd?1:(reach(dd)<reach(a)-0.01?S(a.drib-dd.def)*0.5:S(a.drib-dd.def))};
+}
+function passChance(st,h,t,receiverId){ const m=passModel(st,h,t); let p=m.acc; for(const c of m.cut) p*=1-c.pr;
+  const lc=landContest(st,h.team,t,Math.max(m.flight,0.25),receiverId); return p*lc.pKeep; }
+
+/* 带球：沿路每格，前方或同格一格之内最强的防守人上来抢 */
+function dribPath(h,dest){ const n=cheb(h,dest), out=[]; for(let k=1;k<=n;k++) out.push({x:h.x+Math.round((dest.x-h.x)*k/n),y:h.y+Math.round((dest.y-h.y)*k/n)}); return out; }
+function dribDuels(st,h,dest){ const vx=dest.x-h.x,vy=dest.y-h.y, res=[];
+  for(const c of dribPath(h,dest)){ const ds=st.players.filter(q=>q.team!==h.team&&!q.gk&&cheb(q,c)<=1&&((q.x-h.x)*vx+(q.y-h.y)*vy>=0||key(q)===key(c))).sort((a,b)=>b.def-a.def);
+    if(ds.length) res.push({c,q:ds[0],pr:S(h.drib-ds[0].def)}); }
+  return res; }
+
+/* ---------- 持球人决策（电脑） ---------- */
+function decide(st){
+  const h=P(st,st.ball.holder), team=h.team, me=F(team,h), opts=[];
+  const lossCost=c=>0.01+0.03*Math.pow((11-F(team,c).y)/10,2);
+  const xs=h.gk?0:xG(st,team,me); if(xs>=0.06) opts.push({type:'shoot',p:1,v:xs,txt:'射门（xG '+Math.round(xs*100)+'%）'});
+  for(const t of st.players.filter(q=>q.team===team&&q.id!==h.id&&!q.gk)){
+    const lim=offsideRow(st,team); if(F(team,t).y>lim&&F(team,t).y>me.y) continue;
+    const p=passChance(st,h,t,t.id), v=threat(F(team,t));
+    opts.push({type:'pass',to:t.id,x:t.x,y:t.y,p,v,txt:'传给'+name(t)});
+  }
+  const r=h.gk?0:cellsOf(h);
+  for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const c={x:h.x+dx,y:h.y+dy}; if((!dx&&!dy)||!inP(c.x,c.y)) continue;
+    if(st.players.some(q=>q.team===team&&q.x===c.x&&q.y===c.y)) continue;
+    let p=1; for(const d of dribDuels(st,h,c)) p*=d.pr; opts.push({type:'drib',x:c.x,y:c.y,p,v:threat(F(team,c)),txt:'带球到 '+c.x+','+c.y}); }
+  if(h.gk){ opts.forEach(o=>{ if(o.type==='pass') o.v=o.v*0.5+o.p*0.05; }); }
+  const press=st.players.filter(q=>q.team!==team&&!q.gk&&cheb(q,h)<=cellsOf(q)).sort((a,b)=>b.def-a.def)[0];
+  opts.push({type:'hold',p:press?S(h.drib-press.def+10):1,v:threat(me)*0.95,txt:'护球'});
+  for(const o of opts) o.score=o.type==='shoot'?o.v:o.p*o.v-(1-o.p)*lossCost(h);
+  opts.sort((a,b)=>b.score-a.score);
+  /* 不总选第一：在接近最优的几个里按分数抽一个，让比赛有变化 */
+  const top=opts.filter(o=>o.score>=opts[0].score-0.006), w=top.map(o=>Math.exp((o.score-opts[0].score)/0.002)), sum=w.reduce((a,b)=>a+b,0);
+  let r2=st.R()*sum, pick=top[0]; for(let i=0;i<top.length;i++){ r2-=w[i]; if(r2<=0){ pick=top[i]; break; } }
+  return pick;
+}
+
+/* ---------- 无球跑动：按时刻和角色 ---------- */
+function plan(st){
+  const tg={}, b=st.ball, att=st.poss, def=other(att);
+  for(const p of st.players){ p.role=''; p.why=''; }
+  /* 进攻方 */
+  const fa=F(att,b), lim=offsideRow(st,att), mates=st.players.filter(p=>p.team===att);
+  const holder=b.holder?P(st,b.holder):null;
+  if(holder){ holder.role='持球'; tg[holder.id]={x:holder.x,y:holder.y}; }
+  const opp=st.players.filter(q=>q.team===def);
+  /* 第二进攻人：球侧前方 1–3 格、线路干净的接应点，最多两个 */
+  if(holder){
+    const spots=[];
+    for(let x=1;x<=W;x++)for(let y=Math.max(1,fa.y-1);y<=Math.min(H,fa.y+3);y++){ const c={x,y}, d=cheb(c,fa); if(d<1||d>3||y>lim) continue;
+      const w=F(att,c); if(opp.some(q=>q.x===w.x&&q.y===w.y)) continue;
+      const lane=laneCells(fa,c).map(l=>F(att,l)); const clear=!lane.some(l=>opp.some(q=>q.x===l.x&&q.y===l.y));
+      const near=opp.filter(q=>cheb(q,w)<=1).length;
+      spots.push({c,s:(clear?2:0)+(y-fa.y)*0.4-near*0.8-Math.abs(d-2)*0.3}); }
+    spots.sort((a,b)=>b.s-a.s);
+    const used=new Set([holder.id]);
+    for(const sp of spots.slice(0,4)){ if([...used].length>=3) break;
+      const w=F(att,sp.c); if(Object.values(tg).some(t=>t.x===w.x&&t.y===w.y)) continue;
+      const cand=mates.filter(p=>!used.has(p.id)&&!p.gk&&p.hr!==2&&p.hr!==3).sort((a,c)=>cheb(a,w)/cellsOf(a)-cheb(c,w)/cellsOf(c))[0];
+      if(!cand||cheb(cand,w)>cellsOf(cand)+1) continue;
+      used.add(cand.id); tg[cand.id]=w; cand.role='接应'; cand.why='在球侧前方 '+cheb(sp.c,fa)+' 格处给出干净的传球线路';
+    }
+  }
+  /* 第三进攻人：阵型位置 + 拉宽 + 前插（贴着越位线） */
+  for(const p of mates){ if(tg[p.id]) continue;
+    const base=toCell(formSpot(p.hr,fa)); let c={...base};
+    if(p.gk){ p.role='门将'; p.why='留在禁区里'; }
+    else if(p.hr===9||p.hr===10){ c.x=p.hr===9?1:7; const run=Math.min(lim,fa.y+3); if(run>c.y){ c.y=run; p.role='前插'; p.why='边路贴越位线前插，拉开纵深'; } else { p.role='拉宽'; p.why='贴边线拉开宽度'; } }
+    else if(p.hr===11){ c.y=Math.max(c.y,lim); p.role='前插'; p.why='贴着对方最后一名后卫站位，随时冲身后'; }
+    else if(p.hr===8){ c.y=Math.max(c.y,Math.min(lim,fa.y+1)); p.role='前插'; p.why='前腰插到持球人身前，给出向前的选项'; }
+    else { p.role='平衡'; p.why='留在阵型位置上保持平衡，防反击'; }
+    if(!p.gk) c.y=Math.min(c.y,lim);
+    tg[p.id]=F(att,c);
+  }
+  /* 防守方 */
+  const fd=F(def,b), defs=st.players.filter(p=>p.team===def);
+  const reach=p=>cheb(p,b)/cellsOf(p);
+  const outf=defs.filter(p=>!p.gk).sort((a,c)=>reach(a)-reach(c));
+  const presser=outf[0], cover=outf[1];
+  const gkHolds=holder&&holder.gk;
+  if(presser&&!gkHolds){ tg[presser.id]={x:b.x,y:b.y}; presser.role='上抢'; presser.why='离球最近，上前逼抢'; }
+  if(cover){ const c={x:clamp(fd.x+Math.sign(4-fd.x),1,W),y:clamp(fd.y-1,1,H)}; tg[cover.id]=F(def,c); cover.role='保护'; cover.why='站在上抢队友身后、靠球门一侧补位'; }
+  const backs=defs.filter(p=>p.hr>=2&&p.hr<=5&&!tg[p.id]);
+  const lineY=Math.min(...defs.filter(p=>p.hr>=2&&p.hr<=5).map(p=>toCell(formSpot(p.hr,fd)).y));
+  for(const p of defs){ if(tg[p.id]) continue;
+    let c=toCell(formSpot(p.hr,fd));
+    if(p.gk){ c={x:clamp(fd.x,3,5),y:1}; p.role='门将'; p.why='站在球和球门之间'; }
+    else { if(backs.includes(p)) c.y=lineY; p.role='平衡'; p.why=backs.includes(p)?'后防线保持一条线':'回到阵型位置，保持紧凑'; }
+    tg[p.id]=F(def,c);
+  }
+  return tg;
+}
+function moveAll(st,tg,fixed){
+  const order=st.players.slice().sort((a,b)=>(fixed.includes(b.id)?1:0)-(fixed.includes(a.id)?1:0));
+  const occ={A:new Set(),B:new Set()};
+  for(const p of order){ const t=tg[p.id]||{x:p.x,y:p.y}; const r=fixed.includes(p.id)?0:cellsOf(p); let best={x:p.x,y:p.y},bs=Infinity;
+    for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const c={x:p.x+dx,y:p.y+dy}; if(!inP(c.x,c.y)||occ[p.team].has(key(c))) continue;
+      const s=cheb(c,t)*10+Math.hypot(c.x-t.x,c.y-t.y)+0.01*cheb(c,p); if(s<bs){bs=s;best=c;} }
+    if(bs===Infinity){ for(let x=1;x<=W;x++)for(let y=1;y<=H;y++){ const c={x,y}; if(occ[p.team].has(key(c))) continue; const s=cheb(c,p); if(s<bs){bs=s;best=c;} } }
+    p.x=best.x; p.y=best.y; occ[p.team].add(key(best)); }
+}
+function spreadAll(st,keep){ const tg={}; for(const p of st.players) tg[p.id]={x:p.x,y:p.y}; moveAll(st,tg,keep); }
+
+/* ---------- 一步 ---------- */
+function step(st){
+  const R=st.R, ev={t:st.step*2,txt:'',kind:'',from:null,to:null,air:false}; st.step++;
+  const before={}; st.players.forEach(p=>before[p.id]={x:p.x,y:p.y});
+  /* 无主球：谁先到谁拿 */
+  if(!st.ball.holder){
+    const b=st.ball, cand=st.players.filter(p=>!p.gk&&cheb(p,b)<=cellsOf(p)).sort((a,c)=>cheb(a,b)/cellsOf(a)-cheb(c,b)/cellsOf(c));
+    if(cand.length){ const w=cand[0]; w.x=b.x; w.y=b.y; st.ball.holder=w.id; st.poss=w.team; ev.txt=name(w)+'抢到了无主球'; ev.kind='loose'; }
+    else ev.txt='球无人控制';
+    const tg=plan(st); for(const p of st.players) if(!st.ball.holder||p.id!==st.ball.holder){ if(p.team!==st.poss&&!p.gk&&cheb(p,b)<=3) tg[p.id]={x:b.x,y:b.y}; }
+    moveAll(st,tg,st.ball.holder?[st.ball.holder]:[]); return finishStep(st,ev,before);
+  }
+  const h=P(st,st.ball.holder), team=h.team, act=decide(st);
+  ev.from={x:h.x,y:h.y}; ev.who=h.id; ev.act=act;
+  let newHolder=h.id, land=null;
+  if(act.type==='shoot'){
+    const x=xG(st,team,F(team,h)); ev.kind='shot'; ev.to=F(team,{x:4,y:12});
+    if(R()<x){ st.score[team]++; ev.txt=name(h)+'射门 — 进了！（xG '+Math.round(x*100)+'%）'; ev.goal=true; st.log.push(ev); kickoff(st,other(team)); ev.after='kickoff'; return finishStep(st,ev,before); }
+    const gk=st.players.find(q=>q.team!==team&&q.gk); ev.txt=name(h)+'射门没进（xG '+Math.round(x*100)+'%），'+name(gk)+'得球';
+    newHolder=gk.id; land={x:gk.x,y:gk.y};
+  } else if(act.type==='pass'){
+    const t={x:act.x,y:act.y}, m=passModel(st,h,t), rec=P(st,act.to); ev.kind='pass'; ev.air=m.nCells>=3;
+    let L=t, done=false;
+    if(R()>=m.acc){ const opts=[]; for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){ const c={x:t.x+dx,y:t.y+dy}; if((dx||dy)&&inP(c.x,c.y)) opts.push(c);} L=opts[Math.floor(R()*opts.length)]; ev.miss=true; }
+    for(const c of m.cut){ if(R()<c.pr){ newHolder=c.q.id; L={x:c.q.x,y:c.q.y}; ev.txt=name(h)+(act.txt)+'，被'+name(c.q)+'在线路上断下'; done=true; break; } }
+    if(!done){
+      const lim=offsideRow(st,team);
+      const lc=landContest(st,team,L,Math.max(m.flight,0.25),key(L)===key(t)?rec.id:null);
+      if(lc.a&&F(team,lc.a).y>lim&&F(team,lc.a).y>F(team,h).y&&F(team,L).y>6){ ev.txt=name(lc.a)+'越位'; newHolder=st.players.filter(q=>q.team!==team&&!q.gk).sort((a,b)=>cheb(a,L)-cheb(b,L))[0].id; }
+      else if(lc.a&&R()<lc.pKeep){ newHolder=lc.a.id; ev.txt=name(h)+act.txt+(ev.miss?'（传偏了）':'')+'，'+name(lc.a)+'拿到球'; }
+      else if(lc.d){ newHolder=lc.d.id; ev.txt=name(h)+act.txt+(ev.miss?'，传偏了':'')+'，'+name(lc.d)+'抢先拿到'; }
+      else { newHolder=null; ev.txt=name(h)+act.txt+'，传偏了，球无人控制'; }
+    }
+    land=L; ev.to=L; ev.p=passChance(st,h,t,act.to);
+  } else if(act.type==='drib'){
+    const dest={x:act.x,y:act.y}; ev.kind='drib'; land=dest; ev.p=act.p;
+    for(const d of dribDuels(st,h,dest)){ if(R()>=d.pr){ newHolder=d.q.id; land=d.c; ev.txt=name(h)+'带球，被'+name(d.q)+'抢断'; break; } }
+    if(newHolder===h.id) ev.txt=name(h)+act.txt;
+    ev.to=land;
+  } else { ev.kind='hold'; land={x:h.x,y:h.y}; ev.txt=name(h)+'护球'; }
+  /* 球的新位置，角色按新球权重新分配，所有人跑一步 */
+  if(newHolder){ const w=P(st,newHolder); w.x=land.x; w.y=land.y; st.ball={x:land.x,y:land.y,holder:newHolder}; st.poss=w.team; }
+  else st.ball={x:land.x,y:land.y,holder:null};
+  if(act.type==='drib'&&newHolder===h.id){ h.x=land.x; h.y=land.y; }
+  const tg=plan(st); moveAll(st,tg,newHolder?[newHolder]:[]);
+  /* 跑完以后，同格的上抢者逼抢一次 */
+  if(st.ball.holder){ const bh=P(st,st.ball.holder), t2=st.players.find(q=>q.team!==bh.team&&!q.gk&&q.x===bh.x&&q.y===bh.y&&cheb(before[q.id],bh)<=1);
+    if(t2&&!bh.gk&&R()<(1-S(bh.drib-t2.def+15))*0.7){ st.ball.holder=t2.id; st.poss=t2.team; ev.txt+='；'+name(t2)+'上抢成功，断下球权'; ev.tackle=t2.id; } }
+  return finishStep(st,ev,before);
+}
+function finishStep(st,ev,before){ if(!ev.goal) st.log.push(ev); st.last=ev; ev.before=before; ev.ball={...st.ball}; return ev; }
+
+return {newMatch,step,xG0,threat,W,H,name,cellsOf};
+})();
+
+
+(function(){
+const $=id=>document.getElementById(id);
+let seed=Math.floor(Math.random()*1e6), st, playing=false, timer=null, speed=1, limit=15, sel=null;
+const g=$('grid'); let gh=''; for(let x=1;x<7;x++) gh+='<path d="M'+x+' 1V12" vector-effect="non-scaling-stroke"/>'; for(let y=2;y<12;y++) gh+='<path d="M0 '+y+'H7" vector-effect="non-scaling-stroke"/>'; g.innerHTML=gh;
+const pos=(x,y)=>'translate('+((x-1)*100)+'%,'+((12-y)*100)+'%)';
+function build(){
+  st=Engine.newMatch(seed); limit=15; $('toks').innerHTML=''; $('log').innerHTML=''; sel=null; $('info').style.display='none';
+  for(const p of st.players){ const d=document.createElement('div'); d.className='tok '+p.team+(p.gk?' gk':''); d.id='t'+p.id;
+    d.innerHTML='<div class="disc">'+p.num+'</div><div class="rl"></div>'; d.onclick=()=>{ sel=sel===p.id?null:p.id; draw(true); }; $('toks').appendChild(d); }
+  $('ev').innerHTML='点"开始"，看 30 秒自动比赛。（第 '+seed+' 局）'; draw(true); stop(); $('play').textContent='▶ 开始';
+}
+function draw(instant){
+  document.documentElement.style.setProperty('--dur',(1.2/speed)+'s'); document.documentElement.style.setProperty('--bdur',(0.9/speed)+'s');
+  const cnt={}; st.players.forEach(p=>{const k=p.x+','+p.y; cnt[k]=(cnt[k]||0)+1;});
+  for(const p of st.players){ const el=$('t'+p.id); if(instant) el.style.transition='none';
+    el.style.transform=pos(p.x,p.y); el.querySelector('.rl').textContent=p.role||'';
+    const sh=cnt[p.x+','+p.y]>1; el.classList.toggle('shL',sh&&p.team==='A'); el.classList.toggle('shR',sh&&p.team==='B');
+    el.classList.toggle('has',st.ball.holder===p.id); el.classList.toggle('sel',sel===p.id);
+    if(instant){ void el.offsetWidth; el.style.transition=''; } }
+  const b=$('ball'); const bh=st.ball.holder?st.players.find(p=>p.id===st.ball.holder):null; const bx=bh?bh.x:st.ball.x, by=bh?bh.y:st.ball.y;
+  const off=bh?(bh.team==='A'?{x:-.05,y:.22}:{x:.05,y:.22}):{x:0,y:0};
+  if(instant) b.style.transition='none';
+  b.style.transform='translate('+(((bx-1)+0.35+off.x)/ (1/1) *100/0.3)+'%,'+(((12-by)+0.35+off.y)*100/0.3)+'%)';
+  if(instant){ void b.offsetWidth; b.style.transition=''; }
+  $('sa').textContent=st.score.A; $('sb').textContent=st.score.B; $('clock').textContent=(st.step*2)+' 秒 / '+(limit*2)+' 秒';
+  const info=$('info'); if(sel){ const p=st.players.find(q=>q.id===sel); info.style.display='block';
+    info.innerHTML='<b>'+Engine.name(p)+'</b> '+p.pos+' · 速度 '+p.speed+' · 传球 '+p.pass+' · 带球 '+p.drib+' · 防守 '+p.def+' · 每步跑 '+Engine.cellsOf(p)+' 格<br>此刻角色：<b>'+(p.role||'—')+'</b>'+(p.why?'，'+p.why:'')+(st.ball.holder===p.id&&st.last&&st.last.act&&st.last.who===p.id?'':''); }
+  else info.style.display='none';
+}
+function one(){
+  if(st.step>=limit){ stop(); $('play').textContent='▶ 开始'; $('ev').innerHTML+='<br><b>30 秒到。</b>可以"再踢 30 秒"或"换一局"。'; return; }
+  const ev=Engine.step(st);
+  const holdTxt=ev.act&&ev.act.type==='pass'&&ev.p!=null?'（预估成功率 '+Math.round(ev.p*100)+'%）':'';
+  $('ev').innerHTML='<b>'+ev.t+' 秒</b> '+ev.txt+holdTxt;
+  const li=document.createElement('div'); li.textContent=ev.t+' 秒　'+ev.txt; $('log').prepend(li);
+  draw(ev.after==='kickoff');
+}
+function stop(){ playing=false; clearInterval(timer); }
+$('play').onclick=()=>{ if(playing){ stop(); $('play').textContent='▶ 继续'; return; } if(st.step>=limit) return; playing=true; $('play').textContent='⏸ 暂停'; one(); timer=setInterval(()=>{ if(!playing) return; one(); if(st.step>=limit){ stop(); $('play').textContent='▶ 开始'; } },2000/speed); };
+$('stepb').onclick=()=>{ stop(); $('play').textContent='▶ 继续'; one(); };
+$('speed').onclick=()=>{ speed=speed===1?2:speed===2?0.5:1; $('speed').textContent='速度 '+speed+'×'; if(playing){ stop(); $('play').click(); } };
+$('more').onclick=()=>{ limit=st.step+15; $('clock').textContent=(st.step*2)+' 秒 / '+(limit*2)+' 秒'; };
+$('newm').onclick=()=>{ seed=Math.floor(Math.random()*1e6); build(); };
+build();
+})();
+</script>
+
+</body>
+</html>
