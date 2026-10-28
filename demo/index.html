@@ -336,7 +336,7 @@ function build(){
   st=Engine.newMatch(seed); limit=15; $('toks').innerHTML=''; $('log').innerHTML=''; sel=null; $('info').style.display='none';
   for(const p of st.players){ const d=document.createElement('div'); d.className='tok '+p.team+(p.gk?' gk':''); d.id='t'+p.id;
     d.innerHTML='<div class="disc">'+p.num+'</div><div class="rl"></div>'; d.onclick=()=>{ sel=sel===p.id?null:p.id; draw(true); }; $('toks').appendChild(d); }
-  $('ev').innerHTML='点"开始"，看 30 秒自动比赛。（第 '+seed+' 局）'; draw(true); stop(); $('play').textContent='▶ 开始';
+  $('ev').innerHTML='点"开始"，看 30 秒自动比赛。（开局编号 '+seed+'）'; draw(true); stop(); $('play').textContent='▶ 开始';
 }
 function draw(instant){
   document.documentElement.style.setProperty('--dur',(1.2/speed)+'s'); document.documentElement.style.setProperty('--bdur',(0.9/speed)+'s');
