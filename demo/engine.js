@@ -15,22 +15,48 @@ const F=(team,c)=>team==='A'?{x:c.x,y:c.y}:{x:8-c.x,y:12-c.y};   /* 世界坐标
 const other=t=>t==='A'?'B':'A';
 const name=p=>(p.team==='A'?'黄':'蓝')+p.num;
 
-/* ---------- 球队（4-2-3-1）：role = HELIOS 角色号 ---------- */
+/* ---------- 球队：hr = 阵型槽位号（2/3 中卫，4 左后卫，5 右后卫，6/7 中场后排，8 中场前排，9 左翼，10 右翼，11 中锋） ---------- */
 const TEAMS={
- A:[['门将',1,1,49,64,20,30],['左后卫',3,4,84,74,69,77],['中卫',4,2,66,64,55,91],['中卫',5,3,62,64,56,85],['右后卫',2,5,79,70,75,78],
-    ['后腰',6,6,65,75,69,85],['后腰',8,7,67,81,65,86],['前腰',10,8,72,80,86,52],['左边锋',11,9,86,72,88,50],['右边锋',7,10,84,74,88,50],['中锋',9,11,78,67,78,45]],
- B:[['门将',1,1,43,56,20,30],['左后卫',3,4,78,68,64,68],['中卫',4,2,59,58,46,76],['中卫',5,3,55,57,48,80],['右后卫',2,5,72,65,67,72],
-    ['后腰',6,6,61,74,65,77],['后腰',8,7,56,72,59,75],['前腰',10,8,68,73,76,46],['左边锋',11,9,80,64,76,43],['右边锋',7,10,82,68,79,42],['中锋',9,11,66,54,65,36]]
+ A:{shape:'433',list:[['门将',1,1,49,64,20,30],['左后卫',3,4,84,74,69,77],['中卫',4,2,66,64,55,91],['中卫',5,3,62,64,56,85],['右后卫',2,5,79,70,75,78],
+    ['后腰',6,6,65,75,69,85],['左中场',8,7,67,81,65,86],['右中场',10,8,72,80,86,52],['左边锋',11,9,86,72,88,50],['右边锋',7,10,84,74,88,50],['中锋',9,11,78,67,78,45]]},
+ B:{shape:'4231',list:[['门将',1,1,43,56,20,30],['左后卫',3,4,78,68,64,68],['中卫',4,2,59,58,46,76],['中卫',5,3,55,57,48,80],['右后卫',2,5,72,65,67,72],
+    ['后腰',6,6,61,74,65,77],['后腰',8,7,56,72,59,75],['前腰',10,8,68,73,76,46],['左边锋',11,9,80,64,76,43],['右边锋',7,10,82,68,79,42],['中锋',9,11,66,54,65,36]]}
 };
 
-/* ---------- 阵型：HELIOS 表 + 4-2-3-1 的小调整（本队坐标，连续值，单位格） ---------- */
-function formSpot(role,b){
-  const t=FORM[key({x:clamp(b.x,1,7),y:clamp(b.y,1,11)})]; const g=r=>({x:t[r-1][0],y:t[r-1][1]});
-  let p=g(role);
-  if(role===6){ p=g(6); p.x-=0.6; }
-  if(role===7){ p=g(6); p.x+=0.6; }
-  if(role===8){ const a=g(7),c=g(8),f=g(11); p={x:(a.x+c.x)/2,y:(a.y+c.y)/2*0.5+(f.y)*0.5-0.6}; }
-  return p;
+/* ---------- 阵型：借鉴 Google Research Football 的"自适应阵型框" ----------
+   每个槽位有一个基础位置 (d 纵深 0=后卫线…1=最前, w 横向 -1 左…1 右)，进攻/防守各一套。
+   全队是一个随球移动的"框"：后卫线高度由球的位置决定，框的长度、宽度由是否控球决定。
+   进攻：长约 44 米、几乎全宽；防守：长约 33 米、收窄并向球侧平移。框每步最多移动 1 格（缓冲）。 */
+const SHAPES={
+ '433':{ /* 槽位: [进攻 d,w, 防守 d,w] */
+  2:[0,-.3, 0,-.3], 3:[0,.3, 0,.3], 4:[.38,-.97, .02,-.95], 5:[.38,.97, .02,.95],
+  6:[.22,0, .3,0], 7:[.52,-.45, .55,-.42], 8:[.52,.45, .55,.42],
+  9:[.88,-.95, .62,-.9], 10:[.88,.95, .62,.9], 11:[1,0, 1,0]},
+ '4231':{
+  2:[0,-.3, 0,-.3], 3:[0,.3, 0,.3], 4:[.38,-.97, .02,-.95], 5:[.38,.97, .02,.95],
+  6:[.27,-.3, .3,-.28], 7:[.27,.3, .3,.28], 8:[.65,0, .62,0],
+  9:[.8,-.95, .6,-.9], 10:[.8,.95, .6,.9], 11:[1,0, 1,0]}
+};
+/* 框的目标位置（本队坐标，连续值，单位：格；行 0=本方底线，11=对方底线） */
+function blockTarget(st,team){
+  const atk=st.poss===team, b=F(team,st.ball), by=b.y-0.5, bx=b.x-0.5;
+  const back=atk?clamp(by-3.0,1.2,6.2):clamp(by-2.3,by<1.5?0.5:1.05,5.3);
+  const L=atk?4.6:3.5, hw=atk?3.1:2.2;
+  const cx=clamp(3.5+(bx-3.5)*(atk?0.25:0.55),0.2+hw,6.8-hw);
+  return {back,L,hw,cx,atk};
+}
+function updBlocks(st,snap){
+  st.blk=st.blk||{};
+  for(const t of ['A','B']){ const g=blockTarget(st,t), o=st.blk[t];
+    if(snap||!o){ st.blk[t]=g; continue; }
+    const mv=(a,b,m)=>a+clamp(b-a,-m,m);
+    st.blk[t]={...g,back:mv(o.back,g.back,1.0),cx:mv(o.cx,g.cx,1.0),L:mv(o.L,g.L,0.6),hw:mv(o.hw,g.hw,0.6)}; }
+}
+function formSpot(p,st){
+  const k=st.blk[p.team], s=SHAPES[TEAMS[p.team].shape][p.hr];
+  if(p.gk) return {x:3.5,y:k.atk?0.7:0.4};
+  const d=k.atk?s[0]:s[2], w=k.atk?s[1]:s[3];
+  return {x:clamp(k.cx+w*k.hw,0.05,6.95), y:clamp(k.back+d*k.L,0.3,10.7)};
 }
 const toCell=p=>({x:clamp(Math.floor(p.x)+1,1,W),y:clamp(Math.floor(p.y)+1,1,H)});
 
@@ -58,14 +84,14 @@ const threat=c=>0.004+0.05*Math.pow((c.y-1)/10,2)*(1-0.05*Math.abs(c.x-4))+xG0(c
 /* ---------- 比赛状态 ---------- */
 function newMatch(seed){
   const R=rng(seed||1), players=[];
-  for(const team of ['A','B']) for(const [role,num,hr,speed,pass,drib,def] of TEAMS[team])
+  for(const team of ['A','B']) for(const [role,num,hr,speed,pass,drib,def] of TEAMS[team].list)
     players.push({id:team+num,team,num,pos:role,hr,speed,pass,drib,def,gk:hr===1,x:0,y:0,role:'',why:''});
   const st={players,R,poss:'A',ball:{x:4,y:6,holder:null},step:0,score:{A:0,B:0},log:[],last:null};
   kickoff(st,'A'); return st;
 }
 function kickoff(st,team){
-  const c={x:4,y:6};
-  for(const p of st.players){ const fb=F(p.team,c); let s=toCell(formSpot(p.hr,fb)); s.y=Math.min(s.y,p.team===team?6:5); const w=F(p.team,s); p.x=w.x; p.y=w.y; }
+  st.poss=team; st.ball={x:4,y:6,holder:null}; updBlocks(st,true);
+  for(const p of st.players){ let s=toCell(formSpot(p,st)); s.y=Math.min(s.y,p.team===team?6:5); const w=F(p.team,s); p.x=w.x; p.y=w.y; }
   const cf=st.players.find(p=>p.team===team&&p.hr===11); const kc=F(team,{x:4,y:6}); cf.x=kc.x; cf.y=kc.y;
   spreadAll(st,[cf.id]);
   st.poss=team; st.ball={x:cf.x,y:cf.y,holder:cf.id};
@@ -136,6 +162,8 @@ function decide(st){
 function plan(st){
   const tg={}, b=st.ball, att=st.poss, def=other(att);
   for(const p of st.players){ p.role=''; p.why=''; }
+  updBlocks(st,false);
+  const home=p=>toCell(formSpot(p,st));
   /* 进攻方 */
   const fa=F(att,b), lim=offsideRow(st,att), mates=st.players.filter(p=>p.team===att);
   const holder=b.holder?P(st,b.holder):null;
@@ -153,18 +181,18 @@ function plan(st){
     const used=new Set([holder.id]);
     for(const sp of spots.slice(0,4)){ if([...used].length>=3) break;
       const w=F(att,sp.c); if(Object.values(tg).some(t=>t.x===w.x&&t.y===w.y)) continue;
-      const cand=mates.filter(p=>!used.has(p.id)&&!p.gk&&p.hr!==2&&p.hr!==3).sort((a,c)=>cheb(a,w)/cellsOf(a)-cheb(c,w)/cellsOf(c))[0];
+      const cost=p=>cheb(p,w)/cellsOf(p)+0.5*cheb(F(att,home(p)),sp.c);
+      const cand=mates.filter(p=>!used.has(p.id)&&!p.gk&&p.hr!==2&&p.hr!==3&&cheb(F(att,home(p)),sp.c)<=2).sort((a,c)=>cost(a)-cost(c))[0];
       if(!cand||cheb(cand,w)>cellsOf(cand)+1) continue;
       used.add(cand.id); tg[cand.id]=w; cand.role='接应'; cand.why='在球侧前方 '+cheb(sp.c,fa)+' 格处给出干净的传球线路';
     }
   }
   /* 第三进攻人：阵型位置 + 拉宽 + 前插（贴着越位线） */
   for(const p of mates){ if(tg[p.id]) continue;
-    const base=toCell(formSpot(p.hr,fa)); let c={...base};
+    const base=home(p); let c={...base};
     if(p.gk){ p.role='门将'; p.why='留在禁区里'; }
-    else if(p.hr===9||p.hr===10){ c.x=p.hr===9?1:7; const run=Math.min(lim,fa.y+3); if(run>c.y){ c.y=run; p.role='前插'; p.why='边路贴越位线前插，拉开纵深'; } else { p.role='拉宽'; p.why='贴边线拉开宽度'; } }
-    else if(p.hr===11){ c.y=Math.max(c.y,lim); p.role='前插'; p.why='贴着对方最后一名后卫站位，随时冲身后'; }
-    else if(p.hr===8){ c.y=Math.max(c.y,Math.min(lim,fa.y+1)); p.role='前插'; p.why='前腰插到持球人身前，给出向前的选项'; }
+    else if(p.hr===9||p.hr===10){ c.x=p.hr===9?1:7; if(fa.y>=6&&Math.abs(fa.x-c.x)>=3&&lim>c.y){ c.y=lim; p.role='前插'; p.why='球在另一侧，弱侧边锋贴越位线前插'; } else { p.role='拉宽'; p.why='贴边线拉开宽度'; } }
+    else if(p.hr===11){ c.y=Math.max(c.y,Math.min(lim,fa.y+3)); p.role='前插'; p.why='顶在对方后卫线上，牵制中卫、随时冲身后'; }
     else { p.role='平衡'; p.why='留在阵型位置上保持平衡，防反击'; }
     if(!p.gk) c.y=Math.min(c.y,lim);
     tg[p.id]=F(att,c);
@@ -175,12 +203,13 @@ function plan(st){
   const outf=defs.filter(p=>!p.gk).sort((a,c)=>reach(a)-reach(c));
   const presser=outf[0], cover=outf[1];
   const gkHolds=holder&&holder.gk;
-  if(presser&&!gkHolds){ tg[presser.id]={x:b.x,y:b.y}; presser.role='上抢'; presser.why='离球最近，上前逼抢'; }
-  if(cover){ const c={x:clamp(fd.x+Math.sign(4-fd.x),1,W),y:clamp(fd.y-1,1,H)}; tg[cover.id]=F(def,c); cover.role='保护'; cover.why='站在上抢队友身后、靠球门一侧补位'; }
+  if(presser&&!gkHolds){ const c={x:clamp(fd.x+Math.sign(4-fd.x),1,W),y:clamp(fd.y-1,1,H)}; const at=cheb(presser,b)===1&&F(def,presser).y<=fd.y?{x:presser.x,y:presser.y}:F(def,c);
+    tg[presser.id]=at; presser.role='上抢'; presser.why='离球最近，贴到持球人身前（球门一侧）逼抢'; }
+  if(cover){ const c={x:clamp(fd.x+Math.sign(4-fd.x)*(fd.x===4?0:1),1,W),y:clamp(fd.y-2,1,H)}; tg[cover.id]=F(def,c); cover.role='保护'; cover.why='站在上抢队友身后、靠球门一侧补位'; }
   const backs=defs.filter(p=>p.hr>=2&&p.hr<=5&&!tg[p.id]);
-  const lineY=Math.min(...defs.filter(p=>p.hr>=2&&p.hr<=5).map(p=>toCell(formSpot(p.hr,fd)).y));
+  const lineY=toCell({x:3,y:st.blk[def].back}).y;
   for(const p of defs){ if(tg[p.id]) continue;
-    let c=toCell(formSpot(p.hr,fd));
+    let c=home(p);
     if(p.gk){ c={x:clamp(fd.x,3,5),y:1}; p.role='门将'; p.why='站在球和球门之间'; }
     else { if(backs.includes(p)) c.y=lineY; p.role='平衡'; p.why=backs.includes(p)?'后防线保持一条线':'回到阵型位置，保持紧凑'; }
     tg[p.id]=F(def,c);
