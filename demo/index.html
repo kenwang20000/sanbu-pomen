@@ -34,7 +34,7 @@ button.pri{background:var(--accent);border-color:var(--accent);color:#2a1a04;fon
 .legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
 </style>
 <div class="wrap">
-  <h1>新引擎演示 · 黄 4-3-3 对 蓝 4-2-3-1</h1>
+  <h1>新引擎演示 · 黄 4-2-3-1 对 蓝 4-2-3-1</h1>
   <p class="sub">全自动比赛，每步约 2 秒。黄队向上攻，蓝队向下攻。跑位 v0.3：照 Google 足球引擎的结构——阵型框 + 盯人 + 有门槛的上抢 + "磁力"接应。点球员看他此刻的角色和理由。</p>
   <div class="bar"><span class="score"><span class="a">黄 <span id="sa">0</span></span> : <span class="b"><span id="sb">0</span> 蓝</span></span><span class="clock" id="clock">0 秒 / 30 秒</span></div>
   <div class="board" id="board">
@@ -82,8 +82,8 @@ const name=p=>(p.team==='A'?'黄':'蓝')+p.num;
 
 /* ---------- 球队：hr = 阵型槽位号（2/3 中卫，4 左后卫，5 右后卫，6/7 中场后排，8 中场前排，9 左翼，10 右翼，11 中锋） ---------- */
 const TEAMS={
- A:{shape:'433',list:[['门将',1,1,49,64,20,30],['左后卫',3,4,84,74,69,77],['中卫',4,2,66,64,55,91],['中卫',5,3,62,64,56,85],['右后卫',2,5,79,70,75,78],
-    ['后腰',6,6,65,75,69,85],['左中场',8,7,67,81,65,86],['右中场',10,8,72,80,86,52],['左边锋',11,9,86,72,88,50],['右边锋',7,10,84,74,88,50],['中锋',9,11,78,67,78,45]]},
+ A:{shape:'4231',list:[['门将',1,1,49,64,20,30],['左后卫',3,4,84,74,69,77],['中卫',4,2,66,64,55,91],['中卫',5,3,62,64,56,85],['右后卫',2,5,79,70,75,78],
+    ['后腰',6,6,65,75,69,85],['后腰',8,7,67,81,65,86],['前腰',10,8,72,80,86,52],['左边锋',11,9,86,72,88,50],['右边锋',7,10,84,74,88,50],['中锋',9,11,78,67,78,45]]},
  B:{shape:'4231',list:[['门将',1,1,43,56,20,30],['左后卫',3,4,78,68,64,68],['中卫',4,2,59,58,46,76],['中卫',5,3,55,57,48,80],['右后卫',2,5,72,65,67,72],
     ['后腰',6,6,61,74,65,77],['后腰',8,7,56,72,59,75],['前腰',10,8,68,73,76,46],['左边锋',11,9,80,64,76,43],['右边锋',7,10,82,68,79,42],['中锋',9,11,66,54,65,36]]}
 };
@@ -154,11 +154,18 @@ function newMatch(seed){
   const st={players,R,poss:'A',ball:{x:4,y:6,holder:null},step:0,score:{A:0,B:0},log:[],last:null};
   kickoff(st,'A'); return st;
 }
+/* 开球站位：按阵型直接摆在本方半场（本队坐标）。后卫线第 3 行，后腰第 4 行，前腰和两个边锋第 5 行；
+   开球方中锋站中点；防守方中锋站中线、中圈外。（旧做法是把比赛中的阵型框压进半场，三条线被挤成一团。） */
+const KICK={
+ '4231':{2:[3,3],3:[5,3],4:[2,3],5:[6,3],6:[3,4],7:[5,4],8:[4,5],9:[1,5],10:[7,5],11:[4,6],cf_def:[3,6]},
+ '433': {2:[3,3],3:[5,3],4:[2,3],5:[6,3],6:[4,4],7:[3,5],8:[5,5],9:[1,5],10:[7,5],11:[4,6],cf_def:[4,5]}
+};
 function kickoff(st,team){
   st.poss=team; st.ball={x:4,y:6,holder:null}; st.mem={}; updBlocks(st,true);
-  for(const p of st.players){ let s=toCell(formSpot(p,st)); s.y=Math.min(s.y,5); if(p.team!==team&&s.x===4&&s.y===5) s.x=3; const w=F(p.team,s); p.x=w.x; p.y=w.y; }
-  const cf=st.players.find(p=>p.team===team&&p.hr===11); const kc=F(team,{x:4,y:6}); cf.x=kc.x; cf.y=kc.y;
-  spreadAll(st,[cf.id]);
+  for(const p of st.players){ const K=KICK[TEAMS[p.team].shape];
+    let c=p.gk?[4,1]:(p.hr===11&&p.team!==team?K.cf_def:K[p.hr]);
+    const w=F(p.team,{x:c[0],y:c[1]}); p.x=w.x; p.y=w.y; }
+  const cf=st.players.find(p=>p.team===team&&p.hr===11);
   st.poss=team; st.ball={x:cf.x,y:cf.y,holder:cf.id};
 }
 const P=(st,id)=>st.players.find(p=>p.id===id);
