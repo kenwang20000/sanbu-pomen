@@ -1,4 +1,4 @@
-/* 新引擎 v0.1 —— 只管逻辑，不碰界面。
+/* 新引擎 v0.3 —— 只管逻辑，不碰界面。
    时间：1 步 = 1T ≈ 2 秒。场地 7 列 × 11 行，每格约 9.7 × 9.5 米。
    黄队(A)向上进攻（球门在第 12 行），蓝队(B)向下进攻（球门在第 0 行）。
    所有判断都在"进攻方向朝上"的本队坐标里做，蓝队坐标镜像。 */
@@ -40,8 +40,8 @@ const SHAPES={
 /* 框的目标位置（本队坐标，连续值，单位：格；行 0=本方底线，11=对方底线） */
 function blockTarget(st,team){
   const atk=st.poss===team, b=F(team,st.ball), by=b.y-0.5, bx=b.x-0.5;
-  const back=atk?clamp(by-3.0,1.2,6.2):clamp(by-2.3,by<1.5?0.5:1.05,5.3);
-  const L=atk?4.6:3.5, hw=atk?3.1:2.2;
+  const back=atk?clamp(by-2.4,1.2,6.2):clamp(by-2.3,by<1.5?0.5:1.05,5.3);
+  const L=atk?4.6:3.5, hw=atk?3.1:2.0;
   const cx=clamp(3.5+(bx-3.5)*(atk?0.25:0.55),0.2+hw,6.8-hw);
   return {back,L,hw,cx,atk};
 }
@@ -90,8 +90,8 @@ function newMatch(seed){
   kickoff(st,'A'); return st;
 }
 function kickoff(st,team){
-  st.poss=team; st.ball={x:4,y:6,holder:null}; updBlocks(st,true);
-  for(const p of st.players){ let s=toCell(formSpot(p,st)); s.y=Math.min(s.y,p.team===team?6:5); const w=F(p.team,s); p.x=w.x; p.y=w.y; }
+  st.poss=team; st.ball={x:4,y:6,holder:null}; st.mem={}; updBlocks(st,true);
+  for(const p of st.players){ let s=toCell(formSpot(p,st)); s.y=Math.min(s.y,5); if(p.team!==team&&s.x===4&&s.y===5) s.x=3; const w=F(p.team,s); p.x=w.x; p.y=w.y; }
   const cf=st.players.find(p=>p.team===team&&p.hr===11); const kc=F(team,{x:4,y:6}); cf.x=kc.x; cf.y=kc.y;
   spreadAll(st,[cf.id]);
   st.poss=team; st.ball={x:cf.x,y:cf.y,holder:cf.id};
@@ -146,6 +146,7 @@ function decide(st){
   const r=h.gk?0:cellsOf(h);
   for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const c={x:h.x+dx,y:h.y+dy}; if((!dx&&!dy)||!inP(c.x,c.y)) continue;
     if(st.players.some(q=>q.team===team&&q.x===c.x&&q.y===c.y)) continue;
+    if(F(team,c).y<me.y) continue;                       /* 只往前或横向带球，不往自家球门方向带 */
     let p=1; for(const d of dribDuels(st,h,c)) p*=d.pr; opts.push({type:'drib',x:c.x,y:c.y,p,v:threat(F(team,c)),txt:'带球到 '+c.x+','+c.y}); }
   if(h.gk){ opts.forEach(o=>{ if(o.type==='pass') o.v=o.v*0.5+o.p*0.05; }); }
   const press=st.players.filter(q=>q.team!==team&&!q.gk&&cheb(q,h)<=cellsOf(q)).sort((a,b)=>b.def-a.def)[0];
@@ -158,61 +159,117 @@ function decide(st){
   return pick;
 }
 
-/* ---------- 无球跑动：按时刻和角色 ---------- */
+/* ---------- 无球跑动 v0.3：照搬 Google Research Football 的角色层 ----------
+   防守：①阵型框 ②盯人（只盯最危险的 3 人，站到他和球门之间）③上抢（离持球人最近的两人之一、且在本位置的追抢距离内；换人要明显更近）
+         ④防线不低于"越位陷阱线"。没有"保护"角色，补位由盯人和阵型自然形成。
+   进攻：①阵型框 ②"磁力"接应：被自己阵型点吸住、被对手和传球线推开、与队友保持间距、在持球人 1.5–2 格处最舒服
+         ③一名"接应者"（离持球人前方最近的人，有粘性）④一名"前插者"（条件合适才触发，一跑 2 步）。 */
+const MIND={2:0,3:0,4:.25,5:.25,6:.25,7:.5,8:.5,9:.5,10:.5,11:1};
+function mindOf(p){ if(p.gk) return 0; const sh=TEAMS[p.team].shape; if(p.hr===8&&sh==='4231') return .75; if((p.hr===6||p.hr===7)&&sh==='4231') return .25; if(p.hr===7&&sh==='433') return .5; return MIND[p.hr]; }
+const eu=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function memOf(st,t){ st.mem=st.mem||{}; if(!st.mem[t]) st.mem[t]={presser:null,marks:{},fwd:null,run:null,runUntil:-1}; return st.mem[t]; }
 function plan(st){
   const tg={}, b=st.ball, att=st.poss, def=other(att);
   for(const p of st.players){ p.role=''; p.why=''; }
   updBlocks(st,false);
   const home=p=>toCell(formSpot(p,st));
-  /* 进攻方 */
-  const fa=F(att,b), lim=offsideRow(st,att), mates=st.players.filter(p=>p.team===att);
   const holder=b.holder?P(st,b.holder):null;
-  if(holder){ holder.role='持球'; tg[holder.id]={x:holder.x,y:holder.y}; }
-  const opp=st.players.filter(q=>q.team===def);
-  /* 第二进攻人：球侧前方 1–3 格、线路干净的接应点，最多两个 */
-  if(holder){
-    const spots=[];
-    for(let x=1;x<=W;x++)for(let y=Math.max(1,fa.y-1);y<=Math.min(H,fa.y+3);y++){ const c={x,y}, d=cheb(c,fa); if(d<1||d>3||y>lim) continue;
-      const w=F(att,c); if(opp.some(q=>q.x===w.x&&q.y===w.y)) continue;
-      const lane=laneCells(fa,c).map(l=>F(att,l)); const clear=!lane.some(l=>opp.some(q=>q.x===l.x&&q.y===l.y));
-      const near=opp.filter(q=>cheb(q,w)<=1).length;
-      spots.push({c,s:(clear?2:0)+(y-fa.y)*0.4-near*0.8-Math.abs(d-2)*0.3}); }
-    spots.sort((a,b)=>b.s-a.s);
-    const used=new Set([holder.id]);
-    for(const sp of spots.slice(0,4)){ if([...used].length>=3) break;
-      const w=F(att,sp.c); if(Object.values(tg).some(t=>t.x===w.x&&t.y===w.y)) continue;
-      const cost=p=>cheb(p,w)/cellsOf(p)+0.5*cheb(F(att,home(p)),sp.c);
-      const cand=mates.filter(p=>!used.has(p.id)&&!p.gk&&p.hr!==2&&p.hr!==3&&cheb(F(att,home(p)),sp.c)<=2).sort((a,c)=>cost(a)-cost(c))[0];
-      if(!cand||cheb(cand,w)>cellsOf(cand)+1) continue;
-      used.add(cand.id); tg[cand.id]=w; cand.role='接应'; cand.why='在球侧前方 '+cheb(sp.c,fa)+' 格处给出干净的传球线路';
-    }
+  const mates=st.players.filter(p=>p.team===att), defs=st.players.filter(p=>p.team===def);
+  const own=(t,c)=>F(t,c);
+  /* ===== 进攻方 ===== */
+  const fa=own(att,b), lim=offsideRow(st,att), MA=memOf(st,att);
+  if(holder){ holder.role='持球'; holder.why='控球'; tg[holder.id]={x:holder.x,y:holder.y}; }
+  const field=mates.filter(p=>!p.gk&&(!holder||p.id!==holder.id));
+  /* 接应者：离"持球人身前一点"最近的队友；在位的人继续当，除非他已离开 3 格以上 */
+  if(holder&&!holder.gk){
+    const spot={x:fa.x,y:fa.y+0.15}, cur=MA.fwd&&P(st,MA.fwd);
+    const best=field.slice().sort((a,c)=>eu(own(att,a),spot)-eu(own(att,c),spot))[0];
+    MA.fwd=best?best.id:null;   /* GRF 每 1.5 秒重选一次，比我们一步（2 秒）还短，所以每步重选 */
+  } else MA.fwd=null;
+  /* 前插者：离"持球人前方约 2.7 格"最近的非后卫；距离近、前方对手少才触发，一跑 2 步 */
+  if(holder&&!holder.gk&&st.step>=MA.runUntil){
+    const spot={x:fa.x,y:fa.y+2.7};
+    const r=field.filter(p=>!(p.hr>=2&&p.hr<=5)&&p.id!==MA.fwd).sort((a,c)=>eu(own(att,a),spot)-eu(own(att,c),spot))[0];
+    MA.run=null;
+    if(r){ const d=eu(r,holder)*9.6, dR=Math.sqrt(Math.max(0,1-d/40)); const ro=own(att,r), sp={x:ro.x,y:ro.y+1};
+      let dens=1; defs.filter(q=>!q.gk).map(q=>eu(own(att,q),sp)*9.6).sort((a,c)=>a-c).slice(0,4).forEach(dd=>{ dens-=Math.sqrt(Math.max(0,1-dd/15))*0.3; });
+      if(dR*dens>=0.5){ MA.run=r.id; MA.runUntil=st.step+2; } }
   }
-  /* 第三进攻人：阵型位置 + 拉宽 + 前插（贴着越位线） */
+  if(!holder) { MA.run=null; }
+  const oppsA=defs.filter(q=>!q.gk);
   for(const p of mates){ if(tg[p.id]) continue;
-    const base=home(p); let c={...base};
-    if(p.gk){ p.role='门将'; p.why='留在禁区里'; }
-    else if(p.hr===9||p.hr===10){ c.x=p.hr===9?1:7; if(fa.y>=6&&Math.abs(fa.x-c.x)>=3&&lim>c.y){ c.y=lim; p.role='前插'; p.why='球在另一侧，弱侧边锋贴越位线前插'; } else { p.role='拉宽'; p.why='贴边线拉开宽度'; } }
-    else if(p.hr===11){ c.y=Math.max(c.y,Math.min(lim,fa.y+3)); p.role='前插'; p.why='顶在对方后卫线上，牵制中卫、随时冲身后'; }
-    else { p.role='平衡'; p.why='留在阵型位置上保持平衡，防反击'; }
-    if(!p.gk) c.y=Math.min(c.y,lim);
-    tg[p.id]=F(att,c);
+    if(p.gk){ const c=home(p); tg[p.id]=own(att,{x:4,y:Math.max(1,c.y)}); p.role='门将'; p.why='留在禁区里'; continue; }
+    const me=own(att,p), hm=home(p), r=cellsOf(p), m=mindOf(p);
+    let base={...hm};
+    if(p.id===MA.fwd) base.y=hm.y+Math.round((0.3+0.7*m)*1.25);
+    if(p.id===MA.run){ const c={x:clamp(Math.round(4+(me.x-4)*0.6),1,W),y:Math.min(lim,me.y+2)}; tg[p.id]=own(att,c); p.role='前插'; p.why='前方空当大，插向对方身后（贴着越位线）'; continue; }
+    const wOpp=0.3*({0:2.2,.25:2.1,.5:1.6,.75:1.2,1:1}[m]||1.5);
+    let best=null,bs=-1e9;
+    for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const c={x:me.x+dx,y:me.y+dy}; if(!inP(c.x,c.y)) continue;
+      if(holder&&c.x===fa.x&&c.y===fa.y) continue;
+      if(c.y>lim&&c.y>fa.y) continue;                                  /* 不越位 */
+      if(c.y<2&&fa.y>=2) continue;                                     /* 控球时不退到自家底线那一行 */
+      const dh=eu(c,base); let s=-0.7*(0.3+0.7*Math.min(1,dh/2))*dh;  /* 被阵型点吸住，离得越远吸力越大 */
+      for(const q of oppsA){ const o=own(att,q); const dd=cheb(c,o); if(dd===0) s-=2*wOpp; else if(dd===1) s-=0.5*wOpp; }
+      if(holder){ const lane=laneCells(fa,c); if(lane.some(l=>oppsA.some(q=>{const o=own(att,q); return o.x===l.x&&o.y===l.y;}))) s-=1.0*wOpp;  /* 传球线被挡 */
+        const d=eu(c,fa); if(d<=2.2) s+=0.45*(1-d/2.2); if(d<=1.6) s-=0.45*(1-d/1.6)*1.2; }
+      for(const q of field){ if(q.id===p.id) continue; const o=own(att,tg[q.id]||q); if(cheb(c,o)<=1) s-=0.4; }   /* 和队友拉开（已定好去处的队友按去处算） */
+      s-=0.01*cheb(c,me); if(c.x===me.x&&c.y===me.y) s+=0.2;   /* 惯性：差别不大就不挪 */
+      if(s>bs){ bs=s; best=c; } }
+    tg[p.id]=own(att,best||me);
+    if(p.id===MA.fwd){ p.role='接应'; p.why=own(att,best||me).y>fa.y?'离持球人最近，上前给出向前的出球点':'离持球人最近，在他身侧给出安全的出球点'; }
+    else { p.role='跑位'; p.why=me.y<fa.y?'在阵型位置附近找空当，同时给持球人留回传点':'在阵型位置附近找没人挡的空当'; }
   }
-  /* 防守方 */
-  const fd=F(def,b), defs=st.players.filter(p=>p.team===def);
-  const reach=p=>cheb(p,b)/cellsOf(p);
-  const outf=defs.filter(p=>!p.gk).sort((a,c)=>reach(a)-reach(c));
-  const presser=outf[0], cover=outf[1];
-  const gkHolds=holder&&holder.gk;
-  if(presser&&!gkHolds){ const c={x:clamp(fd.x+Math.sign(4-fd.x),1,W),y:clamp(fd.y-1,1,H)}; const at=cheb(presser,b)===1&&F(def,presser).y<=fd.y?{x:presser.x,y:presser.y}:F(def,c);
-    tg[presser.id]=at; presser.role='上抢'; presser.why='离球最近，贴到持球人身前（球门一侧）逼抢'; }
-  if(cover){ const c={x:clamp(fd.x+Math.sign(4-fd.x)*(fd.x===4?0:1),1,W),y:clamp(fd.y-2,1,H)}; tg[cover.id]=F(def,c); cover.role='保护'; cover.why='站在上抢队友身后、靠球门一侧补位'; }
-  const backs=defs.filter(p=>p.hr>=2&&p.hr<=5&&!tg[p.id]);
-  const lineY=toCell({x:3,y:st.blk[def].back}).y;
-  for(const p of defs){ if(tg[p.id]) continue;
-    let c=home(p);
-    if(p.gk){ c={x:clamp(fd.x,3,5),y:1}; p.role='门将'; p.why='站在球和球门之间'; }
-    else { if(backs.includes(p)) c.y=lineY; p.role='平衡'; p.why=backs.includes(p)?'后防线保持一条线':'回到阵型位置，保持紧凑'; }
-    tg[p.id]=F(def,c);
+  /* ===== 防守方 ===== */
+  const fd=own(def,b), MD=memOf(st,def), outf=defs.filter(p=>!p.gk);
+  const goal={x:4,y:0.5};
+  /* 越位陷阱线（本队坐标，单位格）：默认离球门约 40 米；球越近、对方持球人越深，线就越低 */
+  const hy=holder?own(def,holder).y:fd.y;
+  const trapY=Math.max(0.6,Math.min(4.2,fd.y-0.5-2.4,hy-0.5-0.4));
+  const trapRow=toCell({x:3,y:trapY}).y;
+  const goalStep=o=>{ const c={x:o.x+Math.sign(4-o.x)*(Math.abs(o.x-4)>=2?1:0),y:o.y-1}; return {x:clamp(c.x,1,W),y:clamp(c.y,1,H)}; };
+  /* 危险排序：离本方球门越近越危险，持球人加分 */
+  const dz={x:4*0.8+fd.x*0.2,y:0.5*0.8+fd.y*0.2};
+  const opps=mates.filter(q=>!q.gk).map(q=>({q,o:own(def,q),dg:(1-eu(own(def,q),dz)/22)*0.95+(holder&&q.id===holder.id?0.05:0)})).sort((a,c)=>c.dg-a.dg);
+  const bias=p=>{ const m=mindOf(p); const k=(p.hr>=2&&p.hr<=5)?1.9:(p.hr===11?1.3:1.5); return Math.pow(clamp(k-m-0.5,0,1),0.7); };
+  const free=new Set(outf.map(p=>p.id)), marks={};
+  for(const {q,o} of opps.slice(0,3)){
+    let bestP=null,bq=-1;
+    for(const p of outf){ if(!free.has(p.id)||bias(p)<0.2) continue; const me=own(def,p);   /* 中锋基本不回防盯人 */
+      const goalSide=me.y<=o.y; const dx=Math.abs(me.x-o.x), ahead=Math.max(0,o.y-me.y);
+      let qq=(goalSide?1:0.6)*Math.max(0,1-0.5*Math.min(1,dx/1.5)-0.5*Math.min(1,ahead/6));
+      qq=qq*0.8+0.2*(1-cheb(me,o)/12); if(MD.marks[q.id]===p.id) qq+=0.1;
+      if(qq>bq){ bq=qq; bestP=p; } }
+    if(bestP){ free.delete(bestP.id); marks[q.id]=bestP.id; }
+  }
+  MD.marks=marks;
+  const markOf={}; for(const k in marks) markOf[marks[k]]=k;
+  /* 上抢：离持球人最近的两个未盯人的球员之一，且在追抢距离内（后卫约 2 格、前锋约 1 格）；在位的人优先 */
+  let presser=null;
+  if(holder&&!holder.gk){
+    const reach=p=>cheb(p,holder)/cellsOf(p), huntCells=p=>(10+(1-mindOf(p))*10)/9.6;
+    const near2=outf.filter(p=>!markOf[p.id]).sort((a,c)=>reach(a)-reach(c)).slice(0,2).filter(p=>cheb(p,holder)<=Math.max(1,Math.round(huntCells(p))+cellsOf(p)-1));
+    const cur=near2.find(p=>p.id===MD.presser);
+    if(cur&&!(near2[0]&&near2[0].id!==cur.id&&reach(near2[0])<reach(cur)*0.8)) presser=cur; else presser=near2[0]||null;
+  }
+  MD.presser=presser?presser.id:null;
+  for(const p of defs){
+    if(p.gk){ tg[p.id]=own(def,{x:clamp(fd.x,3,5),y:1}); p.role='门将'; p.why='站在球和球门之间'; continue; }
+    const hm=home(p); let c={...hm};
+    if(presser&&p.id===presser.id){ c=goalStep(own(def,holder)); const me=own(def,p); if(cheb(me,own(def,holder))===1&&me.y<=own(def,holder).y) c=me;
+      p.role='上抢'; p.why='离持球人最近之一，贴到他身前靠球门一侧逼抢'; }
+    else if(markOf[p.id]){ const q=P(st,markOf[p.id]), o=own(def,q), isH=holder&&q.id===holder.id;
+      /* GRF 的盯人：不贴身，只保证"比他离射门点更近 0.4 格"；射门点离球门：持球人 2.5 格、其他人 0.85 格；不越过陷阱线 */
+      const dg=eu(o,goal), thr=isH?2.5:0.85, t=Math.max(dg-thr,0.4); let sp={x:o.x+(goal.x-o.x)/dg*t,y:o.y+(goal.y-o.y)/dg*t};
+      if(sp.y<trapY&&o.y>trapY){ const k=(o.y-trapY)/(o.y-sp.y); sp={x:o.x+(sp.x-o.x)*k,y:trapY}; }
+      const oT=eu(o,sp), v={x:sp.x-hm.x,y:sp.y-hm.y}, L=Math.hypot(v.x,v.y), slack=L-(oT-0.4);
+      let mc={...hm}; if(slack>0&&L>0){ const k=Math.min(slack,L)/L; mc={x:clamp(Math.round(hm.x+v.x*k),1,W),y:clamp(Math.round(hm.y+v.y*k),1,H)}; }
+      const bb=bias(p); c={x:Math.round(hm.x+(mc.x-hm.x)*bb),y:Math.round(hm.y+(mc.y-hm.y)*bb)};
+      p.role='盯人'; p.why=(bb>=0.5?'盯住':'松盯')+name(q)+'：保持在他和球门之间'; }
+    else { p.role='回位'; p.why='回到阵型位置'; }
+    if(p.hr>=2&&p.hr<=5&&p.role==='回位') c.y=Math.max(trapRow,toCell({x:3,y:st.blk[def].back}).y);
+    if(p.role!=='上抢') c.y=Math.max(c.y,Math.min(trapRow,fd.y));        /* 不退到陷阱线以下（除非球已经更深） */
+    tg[p.id]=own(def,c);
   }
   return tg;
 }
